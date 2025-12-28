@@ -4,8 +4,22 @@ import Navbar from './Navbar';
 import { useParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { UserAuth } from '../context/AuthContext';
+import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon} from '@heroicons/react/24/outline';
+
+
 
 const VehicleDetails = () => {
+
+  const handleEdit = (log_id, title, description, cost, date, mileage, toolsUsed) => {
+    setEditingLogId(log_id);
+    setEditedLogTitle(title);
+    setEditedLogDescription(description);
+    setEditedLogCost(cost);
+    setEditedLogDate(date);
+    setEditedLogMileage(mileage);
+    setEditedLogToolsUsed(toolsUsed);
+  }
+
   const { id } = useParams();
 
   const [vehicle, setVehicle] = useState(null);
@@ -29,6 +43,47 @@ const VehicleDetails = () => {
   const [logMileage, setLogMileage] = useState("");
   const [logToolsUsed, setLogToolsUsed] = useState("");
 
+  //edit logs
+  const [editLogVisible, setEditLogVisible] = useState(false);
+
+  const [editingLogId, setEditingLogId] = useState(null);
+  const [editedLogTitle, setEditedLogTitle] = useState("");
+  const [editedLogDescription, setEditedLogDescription] = useState("");
+  const [editedLogCost, setEditedLogCost] = useState("");
+  const [editedLogDate, setEditedLogDate] = useState("");
+  const [editedLogMileage, setEditedLogMileage] = useState("");
+  const [editedLogToolsUsed, setEditedLogToolsUsed] = useState("");
+
+  const [editUploading, setEditUploading] = useState(false)
+
+  const submitLogEdit = async () => {
+    setEditUploading(true);
+
+
+    const { data, error } = await supabase
+      .from('vehicle_logs')
+      .update({
+        title: editedLogTitle,
+        description: editedLogDescription,
+        cost: editedLogCost,
+        date: editedLogDate,
+        mileage: editedLogMileage,
+        tools_used: editedLogToolsUsed
+      })
+      .eq('id', editingLogId)
+      .single();
+
+      if (error) {
+        console.error("Error updating maintenance log:", error);
+      } else {
+        console.log("Maintenance log updated successfully:", data);
+        getLogs();
+        setEditLogVisible(false);
+        setEditingLogId(null);
+      }
+
+      setEditUploading(false);
+  };
 
   const { session } = UserAuth();
   const canEdit = session && vehicle?.user_id === session.user.id;
@@ -463,13 +518,110 @@ const VehicleDetails = () => {
                   {/* Timeline dot */}
                   <span className="absolute -left-[9px] top-2 h-4 w-4 rounded-full bg-blue-600" />
 
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow-lg">
+                  {editingLogId === log.id ? (
+                    <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow-lg">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      {/*Edit Title*/}
+                      <input className="text-lg font-semibold" 
+                      value={editedLogTitle} 
+                      type="Text"
+                      onChange={(e) => setEditedLogTitle(e.target.value)}
+                      />
+                      <div>
+                        {editingLogId === log.id && canEdit &&  (
+                          <div>
+                            <CheckIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block mr-2 cursor-pointer hover:text-green-500" onClick={(e) => submitLogEdit()}/>
+                            <XCircleIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" />
+                          </div>
+                        )}
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          {log.date}
+                        </span>
+                      </div>
+                      
+                    </div>
+
+                    {/* Edit Description */}
+                      {log.description && (
+                        <textarea
+                          value={editedLogDescription}
+                          onChange={(e) => setEditedLogDescription(e.target.value)}
+                          className="w-full mt-2 p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          rows={3}
+                        />
+                      )}
+
+
+                    {/* Edit Metadata */}
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      {log.mileage && (
+                        <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                          <span className="block text-gray-500 dark:text-gray-400">
+                            Mileage
+                          </span>
+                          <input 
+                            className="font-semibold"
+                            type="text"
+                            value={editedLogMileage}
+                            onChange={(e) => setEditedLogMileage(e.target.value)}
+                          />
+                          <span className="font-semibold">
+                             mi
+                          </span>
+                        </div>
+                      )}
+
+                      {log.cost && (
+                        <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                          <span className="block text-gray-500 dark:text-gray-400">
+                            Cost
+                          </span>
+                          <span className="font-semibold">
+                            $
+                          </span>
+                          <input 
+                            className="font-semibold"
+                            type="text"
+                            value={editedLogCost}
+                            onChange={(e) => setEditedLogCost(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      {log.tools_used && (
+                        <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 col-span-2">
+                          <span className="block text-gray-500 dark:text-gray-400">
+                            Tools Used
+                          </span>
+                          <input 
+                            className="font-semibold"
+                            type="text"
+                            value={editedLogToolsUsed}
+                            onChange={(e) => setEditedLogToolsUsed(e.target.value)}
+                          />
+                          
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  ) : (
+                    <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow-lg">
                     {/* Header */}
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold">{log.title}</h3>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {log.date}
-                      </span>
+                      <div>
+                        {canEdit && (
+                          <div>
+                            <PencilSquareIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block mr-2 cursor-pointer hover:text-blue-500" onClick={(e) => handleEdit(log.id, log.title, log.description, log.cost, log.date, log.mileage, log.tools_used)}/>
+                            <TrashIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" />
+                          </div>
+                        )}
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          {log.date}
+                        </span>
+                      </div>
+                      
                     </div>
 
                     {/* Description */}
@@ -513,6 +665,8 @@ const VehicleDetails = () => {
                       )}
                     </div>
                   </div>
+                  )}
+                  
                 </div>
               ))}
             </div>

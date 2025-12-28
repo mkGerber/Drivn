@@ -24,7 +24,7 @@ const Navbar = () => {
         
         {/* Left: Logo */}
         <Link to="/" className="text-xl font-extrabold">
-          BuildLog
+          Drivn
         </Link>
 
         {/* Desktop Links */}
@@ -41,12 +41,7 @@ const Navbar = () => {
               <Link to="/profile" className="button2">
                 Profile
               </Link>
-              <button
-                onClick={handleSignOut}
-                className="border px-4 py-1 rounded hover:bg-white hover:text-black dark:hover:bg-gray-700 transition"
-              >
-                Sign Out
-              </button>
+              
             </>
           ) : (
             <Link to="/signin" className="button2">
@@ -93,12 +88,7 @@ const Navbar = () => {
                 Profile
               </Link>
 
-              <button
-                onClick={handleSignOut}
-                className="w-full text-left border px-4 py-2 rounded hover:bg-white hover:text-black dark:hover:bg-gray-700 transition"
-              >
-                Sign Out
-              </button>
+              
             </>
           ) : (
             <Link

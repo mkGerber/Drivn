@@ -1,13 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Navbar from './Navbar';
+import supabase from '../supabaseClient';
 
 const Profile = () => {
   const { session, signOut } = UserAuth();
   const { darkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
+  const [ suggestions, setSuggestions ] = useState("");
+  console.log(suggestions);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -25,6 +28,21 @@ const Profile = () => {
       console.error(err);
     }
   };
+
+  const submitFeedback = async (e) => {
+    e.preventDefault();
+    alert('Thank you for your feedback!');
+    const newFeedback = {
+      suggestion: suggestions,
+    }
+    const { data, error } = await supabase.from('suggestions').insert([newFeedback]).single();
+    if (error) {
+      console.error("Error submitting feedback:", error);
+    } else {
+      console.log("Feedback submitted successfully:", data);
+    }
+    setSuggestions('');
+  }
 
   if (!session) return null;
 
@@ -58,6 +76,31 @@ const Profile = () => {
         </button>
       </div>
       <div className="text-center mt-4 text-gray-600 dark:text-gray-400">More will be added soon!</div>
+      {/* Suggestion Box */}
+      <div className="max-w-md mx-auto mt-10 p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg transition-all">
+        <h2 className="text-2xl font-bold mb-4 text-center">Suggestions & Feedback</h2>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitFeedback(e);
+            alert('Thank you for your feedback!');
+            e.target.reset();
+          }}
+        >
+          <textarea
+            className="w-full p-4 mb-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+            rows="4"
+            placeholder="Your suggestions or feedback..."
+            onChange ={(e) => setSuggestions(e.target.value)}
+          ></textarea>
+          <button
+            type="submit"
+            className="w-full px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-blue-400 to-purple-500 text-white hover:from-purple-500 hover:to-blue-400 active:scale-95 transition-transform shadow-md"
+          >
+            Submit Feedback
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

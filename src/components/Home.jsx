@@ -51,7 +51,7 @@ const Home = () => {
         </div>
       </div>
       <footer className="bg-white dark:bg-gray-900 text-black dark:text-white text-center p-4 border-t border-gray-200 dark:border-gray-700">
-        <p>&copy; 2025 TBD. All rights reserved.</p>
+        <p>&copy; 2025 Drivn. All rights reserved.</p>
       </footer>
     </div>
   );
