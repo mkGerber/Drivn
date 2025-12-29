@@ -33,6 +33,11 @@ const VehicleDetails = () => {
 
   const [maintenanceLogs, setMaintenanceLogs] = useState([]);
 
+  //Totals
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [totalLogs, setTotalLogs] = useState(0);
+  const [totalHours, setTotalHours] = useState(0);
+
   //Log form
   const [addLogVisible, setAddLogVisible] = useState(false);
 
@@ -42,6 +47,9 @@ const VehicleDetails = () => {
   const [logDate, setLogDate] = useState("");
   const [logMileage, setLogMileage] = useState("");
   const [logToolsUsed, setLogToolsUsed] = useState("");
+  const [logLaborHours, setLogLaborHours] = useState(0);
+  const [logPerformer, setLogPerformer] = useState("");
+  const [logNotes, setLogNotes] = useState("");
 
   //edit logs
 
@@ -128,6 +136,15 @@ const VehicleDetails = () => {
       .order('date', {ascending: false});
     
       if(!error) setMaintenanceLogs(data || [])
+
+    const totalPrice = (data || []).reduce(
+      (sum, log) => sum + (Number(log.cost) || 0), 0
+    );
+
+    setTotalPrice(totalPrice);
+    setTotalLogs(data.length);
+
+      
   };
 
   useEffect(() => {
@@ -243,7 +260,10 @@ const VehicleDetails = () => {
         cost: logCost,
         date: logDate,
         mileage: logMileage,
-        tools_used: logToolsUsed
+        tools_used: logToolsUsed,
+        labor_hours: logLaborHours,
+        performed_by: logPerformer,
+        notes: logNotes
       };
       const { data, error } = await supabase.from("vehicle_logs").insert([newLogData]).single();
 
@@ -259,50 +279,59 @@ const VehicleDetails = () => {
       setLogDate("");
       setLogMileage("");
       setLogToolsUsed("");
+      setLogLaborHours(0);
+      setLogPerformer("");
+      setLogNotes("");
     }
 
     /* ------------------ DELETE VEHICLE ------------------ */
     const deleteVehicle = async () => {
-  try {
-    // 1️⃣ Get image URLs from DB
-    const { data: images, error: imageError } = await supabase
-      .from('car_images')
-      .select('image_url')
-      .eq('car_id', id);
+      const confirmed = window.confirm(
+        "Are you sure you want to delete this vehicle? This cannot be undone."
+      );
 
-    if (imageError) {
-      console.error("Error fetching image URLs:", imageError);
-      return;
-    }
+      if (!confirmed) return;
 
-    // 2️⃣ Convert public URLs → storage paths
-    const pathsToDelete = images
-      .map(img => {
-        if (!img.image_url) return null;
+      try {
+        // 1️⃣ Get image URLs from DB
+        const { data: images, error: imageError } = await supabase
+          .from('car_images')
+          .select('image_url')
+          .eq('car_id', id);
 
-        // Example URL:
-        // https://xxxx.supabase.co/storage/v1/object/public/vehicle-photos/123/1/file.jpg
-        const marker = '/vehicle-photos/';
-        const index = img.image_url.indexOf(marker);
+        if (imageError) {
+          console.error("Error fetching image URLs:", imageError);
+          return;
+        }
 
-        if (index === -1) return null;
+        // 2️⃣ Convert public URLs → storage paths
+        const pathsToDelete = images
+          .map(img => {
+            if (!img.image_url) return null;
 
-        return img.image_url.slice(index + marker.length);
-      })
-      .filter(Boolean);
+            // Example URL:
+            // https://xxxx.supabase.co/storage/v1/object/public/vehicle-photos/123/1/file.jpg
+            const marker = '/vehicle-photos/';
+            const index = img.image_url.indexOf(marker);
 
-    // 3️⃣ Delete files from storage
-    if (pathsToDelete.length > 0) {
-      const { error: removeError } = await supabase
-        .storage
-        .from('vehicle-photos')
-        .remove(pathsToDelete);
+            if (index === -1) return null;
 
-      if (removeError) {
-        console.error("Error deleting storage files:", removeError);
-        return;
-      }
-    }
+            return img.image_url.slice(index + marker.length);
+          })
+          .filter(Boolean);
+
+        // 3️⃣ Delete files from storage
+        if (pathsToDelete.length > 0) {
+          const { error: removeError } = await supabase
+            .storage
+            .from('vehicle-photos')
+            .remove(pathsToDelete);
+
+          if (removeError) {
+            console.error("Error deleting storage files:", removeError);
+            return;
+          }
+        }
 
     // 4️⃣ Delete image records
     const { error: dbImageError } = await supabase
@@ -366,9 +395,12 @@ const VehicleDetails = () => {
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">{vehicle.trim}</p>
           </div>
-          <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition flex-shrink-0 mt-5" onClick={deleteVehicle}>
-            Delete Vehicle
-          </button>
+          {canEdit && (
+            <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition flex-shrink-0 mt-5" onClick={deleteVehicle}>
+              Delete Vehicle
+            </button>
+          )}
+          
         </div>
 
         
@@ -507,24 +539,173 @@ const VehicleDetails = () => {
 
         {/* Add Maintenance Logs */}
         {canEdit && addLogVisible && (
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 shadow-lg mt-4">
-            <h3 className="text-lg font-semibold mb-3">Add Maintenance Log</h3>
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 shadow-xl mt-6 border border-gray-200 dark:border-gray-700">
             
+            {/* Header */}
+            <div className="mb-5">
+              <h3 className="text-xl font-bold text-black dark:text-white">
+                Add Maintenance Log
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Keep track of work, parts, and costs
+              </p>
+            </div>
+
             <div className="space-y-4">
-              <input type="text" placeholder="Title" className="w-full p-2 bg-white dark:bg-gray-700 text-black dark:text-white border border-gray-300 dark:border-gray-600 rounded" value={logTitle} onChange={(e) => setLogTitle(e.target.value)}/>
-              <textarea placeholder="Description" className="w-full p-2 bg-white dark:bg-gray-700 text-black dark:text-white border border-gray-300 dark:border-gray-600 rounded" value={logDescription} onChange={(e) => setLogDescription(e.target.value)}/>
-              <input type="text" placeholder="Cost" className="w-full p-2 bg-white dark:bg-gray-700 text-black dark:text-white border border-gray-300 dark:border-gray-600 rounded" value={logCost} onChange={(e) => setLogCost(e.target.value)}/>
-              <input type="date" placeholder="Date" className="w-full p-2 bg-white dark:bg-gray-700 text-black dark:text-white border border-gray-300 dark:border-gray-600 rounded" value={logDate} onChange={(e) => setLogDate(e.target.value)}/>
-              <input type="text" placeholder="Mileage" className="w-full p-2 bg-white dark:bg-gray-700 text-black dark:text-white border border-gray-300 dark:border-gray-600 rounded" value={logMileage} onChange={(e) => setLogMileage(e.target.value)}/>
-              <input type="text" placeholder="Tools Used" className="w-full p-2 bg-white dark:bg-gray-700 text-black dark:text-white border border-gray-300 dark:border-gray-600 rounded" value={logToolsUsed} onChange={(e) => setLogToolsUsed(e.target.value)}/>
-              <button onClick={addMaintenanceLog} className="w-full bg-gray-800 dark:bg-gray-700 text-white dark:text-white hover:bg-gray-700 dark:hover:bg-gray-600 rounded py-2">
+              
+              {/* Title */}
+              <input
+                type="text"
+                placeholder="Log title (e.g. Oil Change)"
+                className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                          border border-gray-300 dark:border-gray-600 rounded-lg
+                          focus:outline-none focus:ring-2 focus:ring-orange-500"
+                value={logTitle}
+                onChange={(e) => setLogTitle(e.target.value)}
+              />
+
+              {/* Description */}
+              <textarea
+                placeholder="What was done?"
+                rows={3}
+                className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                          border border-gray-300 dark:border-gray-600 rounded-lg
+                          focus:outline-none focus:ring-2 focus:ring-orange-500"
+                value={logDescription}
+                onChange={(e) => setLogDescription(e.target.value)}
+              />
+
+              {/* Cost + Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  type="number"
+                  placeholder="Cost ($)"
+                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                            border border-gray-300 dark:border-gray-600 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  value={logCost}
+                  onChange={(e) => setLogCost(e.target.value)}
+                />
+
+                <input
+                  type="date"
+                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                            border border-gray-300 dark:border-gray-600 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  value={logDate}
+                  onChange={(e) => setLogDate(e.target.value)}
+                />
+              </div>
+
+              {/* Mileage + Tools */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  type="number"
+                  placeholder="Mileage"
+                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                            border border-gray-300 dark:border-gray-600 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  value={logMileage}
+                  onChange={(e) => setLogMileage(e.target.value)}
+                />
+
+                <input
+                  type="text"
+                  placeholder="Tools used (optional)"
+                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                            border border-gray-300 dark:border-gray-600 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  value={logToolsUsed}
+                  onChange={(e) => setLogToolsUsed(e.target.value)}
+                />
+              </div>
+
+              {/* labor hours + Performed by */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  type="number"
+                  placeholder="Labor Hours"
+                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                            border border-gray-300 dark:border-gray-600 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  value={logLaborHours}
+                  onChange={(e) => setLogLaborHours(e.target.value)}
+                />
+
+                <input
+                  type="text"
+                  placeholder="Who did the work? (yourself, friend, shop...)"
+                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                            border border-gray-300 dark:border-gray-600 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  value={logPerformer}
+                  onChange={(e) => setLogPerformer(e.target.value)}
+                />
+              </div>
+
+              {/* Description */}
+              <textarea
+                placeholder="Any other notes you want to add"
+                rows={3}
+                className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                          border border-gray-300 dark:border-gray-600 rounded-lg
+                          focus:outline-none focus:ring-2 focus:ring-orange-500"
+                value={logNotes}
+                onChange={(e) => setLogNotes(e.target.value)}
+              />
+
+              {/* Submit */}
+              <button
+                onClick={addMaintenanceLog}
+                disabled={logUploading}
+                className="w-full mt-2 bg-gradient-to-r from-orange-500 to-red-500
+                          text-white font-semibold py-3 rounded-lg
+                          hover:opacity-90 transition disabled:opacity-50"
+              >
                 {logUploading ? 'Adding Log…' : 'Add Maintenance Log'}
               </button>
+
             </div>
           </div>
         )}
+
         {/* Maintenance Logs */}
         <div className="mt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
+            
+            {/* Total Logs */}
+            <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                # of Logs
+              </p>
+              <h1 className="text-3xl font-bold text-black dark:text-white">
+                {totalLogs}
+              </h1>
+            </div>
+
+            {/* Total Spent */}
+            <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                Total Spent
+              </p>
+              <h1 className="text-3xl font-bold text-green-500">
+                ${totalPrice.toFixed(2)}
+              </h1>
+            </div>
+
+            {/* Hours Spent */}
+            <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                Hours Spent
+              </p>
+              <h1 className="text-3xl font-bold text-blue-500">
+                {totalHours}
+              </h1>
+            </div>
+
+          </div>
+        
+
           {maintenanceLogs.length === 0 ? (
             <p className="text-gray-600 dark:text-gray-400">
               {canEdit ? 'No maintenance logs yet. Start by adding one above 👨‍🔧' 
