@@ -8,6 +8,7 @@ import Garage from "./components/Garage";
 import Explore from "./components/Explore";
 import AddVehicle from "./components/AddVehicle";
 import VehicleDetails from "./components/VehicleDetails";
+import DiscussionDetail from "./components/DiscussionDetail";
 
 export const router = createBrowserRouter([
     {path: "/", element: <App/>},
@@ -19,4 +20,5 @@ export const router = createBrowserRouter([
     {path: "/explore", element:<Explore/>},
     {path: "/addvehicle", element:<AddVehicle/>},
     {path: "/vehicle/:id", element:<VehicleDetails/>},
+    {path: "/discussion/:id", element:<DiscussionDetail/>},
 ]);

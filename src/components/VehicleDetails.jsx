@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import supabase from '../supabaseClient';
 import Navbar from './Navbar';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { UserAuth } from '../context/AuthContext';
-import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon} from '@heroicons/react/24/outline';
+import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon, ChatBubbleLeftIcon, ArrowUpIcon, ArrowDownIcon, QuestionMarkCircleIcon} from '@heroicons/react/24/outline';
+import {ArrowUpIcon as ArrowUpSolid, ArrowDownIcon as ArrowDownSolid} from '@heroicons/react/24/solid';
 
 
 
@@ -41,11 +42,11 @@ const VehicleDetails = () => {
   //Log form
   const [addLogVisible, setAddLogVisible] = useState(false);
 
-  const [logTitle, setLogTitle] = useState("");
+  const [logTitle, setLogTitle] = useState(null);
   const [logDescription, setLogDescription] = useState("");
-  const [logCost, setLogCost] = useState("");
-  const [logDate, setLogDate] = useState("");
-  const [logMileage, setLogMileage] = useState("");
+  const [logCost, setLogCost] = useState(null);
+  const [logDate, setLogDate] = useState(null);
+  const [logMileage, setLogMileage] = useState(null);
   const [logToolsUsed, setLogToolsUsed] = useState("");
   const [logLaborHours, setLogLaborHours] = useState(0);
   const [logPerformer, setLogPerformer] = useState("");
@@ -141,7 +142,12 @@ const VehicleDetails = () => {
       (sum, log) => sum + (Number(log.cost) || 0), 0
     );
 
+    const totalHours = (data || []).reduce(
+      (sum, log) => sum + (Number(log.labor_hours) || 0), 0
+    );
+
     setTotalPrice(totalPrice);
+    setTotalHours(totalHours);
     setTotalLogs(data.length);
 
       
@@ -282,6 +288,9 @@ const VehicleDetails = () => {
       setLogLaborHours(0);
       setLogPerformer("");
       setLogNotes("");
+
+      getLogs();
+      setAddLogVisible(false);
     }
 
     /* ------------------ DELETE VEHICLE ------------------ */
@@ -386,7 +395,7 @@ const VehicleDetails = () => {
     <div className="min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Title */}
         <div className="flex justify-between items-start">
           <div>
@@ -403,8 +412,10 @@ const VehicleDetails = () => {
           
         </div>
 
-        
-
+        {/* MAIN LAYOUT: Content + Sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* LEFT COLUMN - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
         {/* MAIN SECTION */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* CAROUSEL */}
@@ -551,112 +562,171 @@ const VehicleDetails = () => {
               </p>
             </div>
 
-            <div className="space-y-4">
-              
+            <form className="space-y-4" onSubmit={addMaintenanceLog}>
+
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Fields marked with <span className="text-red-500">*</span> are required
+              </p>
+
               {/* Title */}
-              <input
-                type="text"
-                placeholder="Log title (e.g. Oil Change)"
-                className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                          border border-gray-300 dark:border-gray-600 rounded-lg
-                          focus:outline-none focus:ring-2 focus:ring-orange-500"
-                value={logTitle}
-                onChange={(e) => setLogTitle(e.target.value)}
-              />
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Log Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Oil Change"
+                  required
+                  value={logTitle}
+                  onChange={(e) => setLogTitle(e.target.value)}
+                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                            border border-gray-300 dark:border-gray-600 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500
+                            invalid:border-red-500 invalid:ring-red-500"
+                />
+              </div>
 
               {/* Description */}
-              <textarea
-                placeholder="What was done?"
-                rows={3}
-                className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                          border border-gray-300 dark:border-gray-600 rounded-lg
-                          focus:outline-none focus:ring-2 focus:ring-orange-500"
-                value={logDescription}
-                onChange={(e) => setLogDescription(e.target.value)}
-              />
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="What was done?"
+                  value={logDescription}
+                  onChange={(e) => setLogDescription(e.target.value)}
+                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                            border border-gray-300 dark:border-gray-600 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
 
               {/* Cost + Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  type="number"
-                  placeholder="Cost ($)"
-                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                            border border-gray-300 dark:border-gray-600 rounded-lg
-                            focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  value={logCost}
-                  onChange={(e) => setLogCost(e.target.value)}
-                />
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Cost ($) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="0.00"
+                    value={logCost}
+                    onChange={(e) => setLogCost(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500
+                              invalid:border-red-500 invalid:ring-red-500"
+                  />
+                </div>
 
-                <input
-                  type="date"
-                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                            border border-gray-300 dark:border-gray-600 rounded-lg
-                            focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  value={logDate}
-                  onChange={(e) => setLogDate(e.target.value)}
-                />
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={logDate}
+                    onChange={(e) => setLogDate(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500
+                              invalid:border-red-500 invalid:ring-red-500"
+                  />
+                </div>
               </div>
 
               {/* Mileage + Tools */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  type="number"
-                  placeholder="Mileage"
-                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                            border border-gray-300 dark:border-gray-600 rounded-lg
-                            focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  value={logMileage}
-                  onChange={(e) => setLogMileage(e.target.value)}
-                />
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Mileage
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Mileage"
+                    value={logMileage}
+                    onChange={(e) => setLogMileage(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
 
-                <input
-                  type="text"
-                  placeholder="Tools used (optional)"
-                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                            border border-gray-300 dark:border-gray-600 rounded-lg
-                            focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  value={logToolsUsed}
-                  onChange={(e) => setLogToolsUsed(e.target.value)}
-                />
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Tools Used
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Optional"
+                    value={logToolsUsed}
+                    onChange={(e) => setLogToolsUsed(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
               </div>
 
-              {/* labor hours + Performed by */}
+              {/* Labor + Performer */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  type="number"
-                  placeholder="Labor Hours"
-                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                            border border-gray-300 dark:border-gray-600 rounded-lg
-                            focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  value={logLaborHours}
-                  onChange={(e) => setLogLaborHours(e.target.value)}
-                />
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Labor Hours
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    placeholder="Hours"
+                    value={logLaborHours}
+                    onChange={(e) => setLogLaborHours(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
 
-                <input
-                  type="text"
-                  placeholder="Who did the work? (yourself, friend, shop...)"
-                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                            border border-gray-300 dark:border-gray-600 rounded-lg
-                            focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  value={logPerformer}
-                  onChange={(e) => setLogPerformer(e.target.value)}
-                />
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Performed By
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Yourself, friend, shop…"
+                    value={logPerformer}
+                    onChange={(e) => setLogPerformer(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
               </div>
 
-              {/* Description */}
-              <textarea
-                placeholder="Any other notes you want to add"
-                rows={3}
-                className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                          border border-gray-300 dark:border-gray-600 rounded-lg
-                          focus:outline-none focus:ring-2 focus:ring-orange-500"
-                value={logNotes}
-                onChange={(e) => setLogNotes(e.target.value)}
-              />
+              {/* Notes */}
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Notes
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Any other notes"
+                  value={logNotes}
+                  onChange={(e) => setLogNotes(e.target.value)}
+                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                            border border-gray-300 dark:border-gray-600 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
 
               {/* Submit */}
               <button
-                onClick={addMaintenanceLog}
+                type="submit"
                 disabled={logUploading}
                 className="w-full mt-2 bg-gradient-to-r from-orange-500 to-red-500
                           text-white font-semibold py-3 rounded-lg
@@ -665,7 +735,8 @@ const VehicleDetails = () => {
                 {logUploading ? 'Adding Log…' : 'Add Maintenance Log'}
               </button>
 
-            </div>
+            </form>
+
           </div>
         )}
 
@@ -872,6 +943,14 @@ const VehicleDetails = () => {
             </div>
           )}
         </div>
+          </div>
+
+          {/* RIGHT COLUMN - Discussion & Q&A Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            <DiscussionSection vehicleId={id} />
+            <QASection vehicleId={id} />
+          </div>
+        </div>
 
       </div>
     </div>
@@ -888,3 +967,495 @@ const InfoRow = ({ label, value }) => (
     <span className="font-medium">{value || '—'}</span>
   </div>
 );
+
+/* ------------------ DISCUSSION SECTION ------------------ */
+
+const DiscussionSection = ({ vehicleId }) => {
+  const navigate = useNavigate();
+  
+  const [discussions, setDiscussions] = useState([
+    {
+      id: 1,
+      author: 'CarEnthusiast92',
+      title: 'Love the color on this build!',
+      content: 'That paint job is absolutely stunning. How long have you had it?',
+      upvotes: 24,
+      downvotes: 2,
+      comments: 5,
+      timestamp: '2 hours ago',
+      userVote: null,
+      vehicleId: vehicleId
+    },
+    {
+      id: 2,
+      author: 'MechanicMike',
+      title: 'Great maintenance schedule',
+      content: 'Your maintenance logs are really well organized. What oil do you use?',
+      upvotes: 18,
+      downvotes: 1,
+      comments: 3,
+      timestamp: '5 hours ago',
+      userVote: null,
+      vehicleId: vehicleId
+    },
+    {
+      id: 3,
+      author: 'SpeedDemon',
+      title: 'Mod suggestions?',
+      content: 'Have you considered any performance mods? This platform has great potential.',
+      upvotes: 12,
+      downvotes: 0,
+      comments: 8,
+      timestamp: '1 day ago',
+      userVote: null,
+      vehicleId: vehicleId
+    }
+  ]);
+
+  const [newPostTitle, setNewPostTitle] = useState('');
+  const [newPostContent, setNewPostContent] = useState('');
+  const [showNewPost, setShowNewPost] = useState(false);
+
+  const handleVote = (id, voteType) => {
+    setDiscussions(prev => prev.map(disc => {
+      if (disc.id === id) {
+        const currentVote = disc.userVote;
+        let newUpvotes = disc.upvotes;
+        let newDownvotes = disc.downvotes;
+        let newUserVote = null;
+
+        if (currentVote === voteType) {
+          // Undo vote
+          if (voteType === 'up') newUpvotes--;
+          else newDownvotes--;
+        } else {
+          // Remove opposite vote if exists
+          if (currentVote === 'up') newUpvotes--;
+          if (currentVote === 'down') newDownvotes--;
+          
+          // Add new vote
+          if (voteType === 'up') newUpvotes++;
+          else newDownvotes++;
+          newUserVote = voteType;
+        }
+
+        return {
+          ...disc,
+          upvotes: newUpvotes,
+          downvotes: newDownvotes,
+          userVote: newUserVote
+        };
+      }
+      return disc;
+    }));
+  };
+
+  const handleSubmitPost = (e) => {
+    e.preventDefault();
+    if (!newPostTitle.trim() || !newPostContent.trim()) return;
+
+    const newPost = {
+      id: discussions.length + 1,
+      author: 'You',
+      title: newPostTitle,
+      content: newPostContent,
+      upvotes: 0,
+      downvotes: 0,
+      comments: 0,
+      timestamp: 'just now',
+      userVote: null,
+      vehicleId: vehicleId
+    };
+
+    setDiscussions([newPost, ...discussions]);
+    setNewPostTitle('');
+    setNewPostContent('');
+    setShowNewPost(false);
+  };
+
+  return (
+    <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow-lg">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <ChatBubbleLeftIcon className="h-6 w-6 text-blue-500" />
+          Discussions
+        </h2>
+        <button
+          onClick={() => setShowNewPost(!showNewPost)}
+          className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition"
+        >
+          {showNewPost ? 'Cancel' : '+ New Post'}
+        </button>
+      </div>
+
+      {/* New Post Form */}
+      {showNewPost && (
+        <form onSubmit={handleSubmitPost} className="mb-4 p-4 bg-white dark:bg-gray-700 rounded-lg space-y-3">
+          <input
+            type="text"
+            placeholder="Post title..."
+            value={newPostTitle}
+            onChange={(e) => setNewPostTitle(e.target.value)}
+            className="w-full p-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <textarea
+            placeholder="What's on your mind?"
+            value={newPostContent}
+            onChange={(e) => setNewPostContent(e.target.value)}
+            rows={3}
+            className="w-full p-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md transition"
+          >
+            Post
+          </button>
+        </form>
+      )}
+
+      {/* Discussions List */}
+      <div className="space-y-4 max-h-[600px] overflow-y-auto">
+        {discussions.map((disc) => (
+          <div
+            key={disc.id}
+            className="bg-white dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition"
+          >
+            <div className="flex gap-3">
+              {/* Vote Section */}
+              <div className="flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleVote(disc.id, 'up');
+                  }}
+                  className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition ${
+                    disc.userVote === 'up' ? 'text-orange-500' : 'text-gray-500'
+                  }`}
+                >
+                  {disc.userVote === 'up' ? (
+                    <ArrowUpSolid className="h-5 w-5" />
+                  ) : (
+                    <ArrowUpIcon className="h-5 w-5" />
+                  )}
+                </button>
+                <span className={`text-sm font-semibold ${
+                  disc.userVote === 'up' ? 'text-orange-500' :
+                  disc.userVote === 'down' ? 'text-blue-500' :
+                  'text-gray-600 dark:text-gray-400'
+                }`}>
+                  {disc.upvotes - disc.downvotes}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleVote(disc.id, 'down');
+                  }}
+                  className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition ${
+                    disc.userVote === 'down' ? 'text-blue-500' : 'text-gray-500'
+                  }`}
+                >
+                  {disc.userVote === 'down' ? (
+                    <ArrowDownSolid className="h-5 w-5" />
+                  ) : (
+                    <ArrowDownIcon className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+
+              {/* Content - Clickable */}
+              <div 
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => navigate(`/discussion/${disc.id}`)}
+              >
+                <h3 className="font-semibold text-sm mb-1 line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition">{disc.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                  {disc.content}
+                </p>
+                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
+                  <span className="font-medium">u/{disc.author}</span>
+                  <span>•</span>
+                  <span>{disc.timestamp}</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <ChatBubbleLeftIcon className="h-3 w-3" />
+                    {disc.comments}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {discussions.length === 0 && (
+        <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+          No discussions yet. Start the conversation!
+        </p>
+      )}
+    </div>
+  );
+};
+
+/* ------------------ Q&A SECTION ------------------ */
+
+const QASection = ({ vehicleId }) => {
+  const [questions, setQuestions] = useState([
+    {
+      id: 1,
+      author: 'NewOwner123',
+      question: 'What\'s the recommended oil change interval?',
+      answers: [
+        {
+          id: 1,
+          author: 'ExperiencedOwner',
+          content: 'I change mine every 5,000 miles with synthetic oil. Works great!',
+          upvotes: 8,
+          timestamp: '3 hours ago',
+          isAccepted: false
+        },
+        {
+          id: 2,
+          author: 'MechanicPro',
+          content: 'Check your manual, but typically 5,000-7,500 miles for synthetic is standard.',
+          upvotes: 12,
+          timestamp: '1 hour ago',
+          isAccepted: true
+        }
+      ],
+      timestamp: '5 hours ago',
+      isAnswered: true
+    },
+    {
+      id: 2,
+      author: 'CuriousDriver',
+      question: 'Best tire pressure for daily driving?',
+      answers: [
+        {
+          id: 3,
+          author: 'TireExpert',
+          content: 'Usually 32-35 PSI is recommended. Check the sticker on your driver door jamb for exact specs.',
+          upvotes: 5,
+          timestamp: '2 hours ago',
+          isAccepted: false
+        }
+      ],
+      timestamp: '6 hours ago',
+      isAnswered: true
+    },
+    {
+      id: 3,
+      author: 'DIYMechanic',
+      question: 'How difficult is it to replace the brake pads yourself?',
+      answers: [],
+      timestamp: '1 day ago',
+      isAnswered: false
+    }
+  ]);
+
+  const [newQuestion, setNewQuestion] = useState('');
+  const [showNewQuestion, setShowNewQuestion] = useState(false);
+  const [expandedQuestion, setExpandedQuestion] = useState(null);
+  const [newAnswers, setNewAnswers] = useState({});
+
+  const handleSubmitQuestion = (e) => {
+    e.preventDefault();
+    if (!newQuestion.trim()) return;
+
+    const question = {
+      id: questions.length + 1,
+      author: 'You',
+      question: newQuestion,
+      answers: [],
+      timestamp: 'just now',
+      isAnswered: false
+    };
+
+    setQuestions([question, ...questions]);
+    setNewQuestion('');
+    setShowNewQuestion(false);
+  };
+
+  const handleSubmitAnswer = (questionId, e) => {
+    e.preventDefault();
+    const answerText = newAnswers[questionId];
+    if (!answerText?.trim()) return;
+
+    const newAnswer = {
+      id: Date.now(),
+      author: 'You',
+      content: answerText,
+      upvotes: 0,
+      timestamp: 'just now',
+      isAccepted: false
+    };
+
+    setQuestions(prev => prev.map(q => {
+      if (q.id === questionId) {
+        return {
+          ...q,
+          answers: [...q.answers, newAnswer],
+          isAnswered: true
+        };
+      }
+      return q;
+    }));
+
+    setNewAnswers(prev => ({ ...prev, [questionId]: '' }));
+  };
+
+  const handleAcceptAnswer = (questionId, answerId) => {
+    setQuestions(prev => prev.map(q => {
+      if (q.id === questionId) {
+        return {
+          ...q,
+          answers: q.answers.map(a => ({
+            ...a,
+            isAccepted: a.id === answerId
+          }))
+        };
+      }
+      return q;
+    }));
+  };
+
+  return (
+    <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow-lg">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <QuestionMarkCircleIcon className="h-6 w-6 text-green-500" />
+          Q&A
+        </h2>
+        <button
+          onClick={() => setShowNewQuestion(!showNewQuestion)}
+          className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md transition"
+        >
+          {showNewQuestion ? 'Cancel' : '+ Ask Question'}
+        </button>
+      </div>
+
+      {/* New Question Form */}
+      {showNewQuestion && (
+        <form onSubmit={handleSubmitQuestion} className="mb-4 p-4 bg-white dark:bg-gray-700 rounded-lg">
+          <textarea
+            placeholder="What would you like to know?"
+            value={newQuestion}
+            onChange={(e) => setNewQuestion(e.target.value)}
+            rows={3}
+            className="w-full p-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 resize-none mb-3"
+          />
+          <button
+            type="submit"
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md transition"
+          >
+            Ask Question
+          </button>
+        </form>
+      )}
+
+      {/* Questions List */}
+      <div className="space-y-4 max-h-[600px] overflow-y-auto">
+        {questions.map((q) => (
+          <div
+            key={q.id}
+            className="bg-white dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition"
+          >
+            <div className="flex items-start gap-3 mb-3">
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                q.isAnswered
+                  ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                  : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+              }`}>
+                {q.isAnswered ? '✓' : '?'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm mb-1">{q.question}</h3>
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
+                  <span>u/{q.author}</span>
+                  <span>•</span>
+                  <span>{q.timestamp}</span>
+                  {q.isAnswered && (
+                    <>
+                      <span>•</span>
+                      <span className="text-green-600 dark:text-green-400">{q.answers.length} answer{q.answers.length !== 1 ? 's' : ''}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Answers */}
+            {q.answers.length > 0 && (
+              <div className="ml-11 space-y-3 border-l-2 border-gray-200 dark:border-gray-600 pl-4">
+                {q.answers.map((answer) => (
+                  <div
+                    key={answer.id}
+                    className={`relative p-3 rounded-lg ${
+                      answer.isAccepted
+                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                        : 'bg-gray-50 dark:bg-gray-800'
+                    }`}
+                  >
+                    {answer.isAccepted && (
+                      <div className="absolute -left-6 top-3 text-green-600 dark:text-green-400">
+                        <CheckIcon className="h-5 w-5" />
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                      {answer.content}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
+                        <span>u/{answer.author}</span>
+                        <span>•</span>
+                        <span>{answer.timestamp}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <ArrowUpIcon className="h-3 w-3" />
+                          {answer.upvotes}
+                        </span>
+                      </div>
+                      {!answer.isAccepted && (
+                        <button
+                          onClick={() => handleAcceptAnswer(q.id, answer.id)}
+                          className="text-xs text-green-600 dark:text-green-400 hover:underline"
+                        >
+                          Accept
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Answer Input */}
+            <div className="ml-11 mt-3">
+              <form onSubmit={(e) => handleSubmitAnswer(q.id, e)} className="space-y-2">
+                <textarea
+                  placeholder="Write an answer..."
+                  value={newAnswers[q.id] || ''}
+                  onChange={(e) => setNewAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                  rows={2}
+                  className="w-full p-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 resize-none text-sm"
+                />
+                <button
+                  type="submit"
+                  className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md transition"
+                >
+                  Post Answer
+                </button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {questions.length === 0 && (
+        <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+          No questions yet. Be the first to ask!
+        </p>
+      )}
+    </div>
+  );
+};
