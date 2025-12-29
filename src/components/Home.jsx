@@ -32,23 +32,55 @@ const Home = () => {
           </a>
         </div>
 
-        <div className="bg-gray-900 dark:bg-gray-800 mt-10 rounded-lg w-full p-20">
-          <div className="bg-gray-950 dark:bg-gray-900 rounded-lg w-10/12 mx-auto mt-14 p-14 min-h-56 flex flex-col justify-between">
-            <WrenchIcon className="w-16 h-16 mb-6 bg-gray-900 dark:bg-gray-800 p-3 border border-none rounded-xl" style={{color: '#e45a41'}}/>
-            <h2 className="font-bold pb-3 text-2xl text-white">Track Modifications </h2>
-            <p className="text-gray-400 text-xl">Log every part, tune, and upgrade. Keep a detailed history of your build's evolution.</p>
-          </div>
-          <div className="bg-gray-950 dark:bg-gray-900 rounded-lg w-10/12 mx-auto mt-14 p-14 min-h-56 flex flex-col justify-between">
-            <CurrencyDollarIcon className="w-16 h-16 mb-6 bg-gray-900 dark:bg-gray-800 p-3 border border-none rounded-xl" style={{color: '#58f334'}}/>
-            <h2 className="font-bold pb-3 text-2xl text-white">Cost Analysis </h2>
-            <p className="text-gray-400 text-xl">Visualize your spending. See exactly how much went into performance vs. aesthetics.</p>
-          </div>
-          <div className="bg-gray-950 dark:bg-gray-900 rounded-lg w-10/12 mx-auto mt-14 p-14 min-h-56 flex flex-col justify-between">
-            <UsersIcon className="w-16 h-16 mb-6 bg-gray-900 dark:bg-gray-800 p-3 border border-none rounded-xl" style={{color: '#3480f3'}}/>
-            <h2 className="font-bold pb-3 text-2xl text-white">Community Inspiration </h2>
-            <p className="text-gray-400 text-xl">Browse other builds to get ideas. See what parts others are running on your chassis.</p>
+        <div className="bg-gray-900 dark:bg-gray-800 mt-10 w-full px-6 py-14">
+          <div
+            id="features"
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto"
+          >
+            {/* Feature 1 */}
+            <div className="bg-gray-950 dark:bg-gray-900 rounded-xl p-8 flex flex-col justify-between">
+              <WrenchIcon
+                className="w-12 h-12 mb-5 p-2 rounded-lg bg-gray-900 dark:bg-gray-800"
+                style={{ color: '#e45a41' }}
+              />
+              <h2 className="font-bold text-xl text-white mb-2">
+                Track Modifications
+              </h2>
+              <p className="text-gray-400 text-base leading-relaxed">
+                Log every part, tune, and upgrade. Keep a detailed history of your build’s evolution.
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="bg-gray-950 dark:bg-gray-900 rounded-xl p-8 flex flex-col justify-between">
+              <CurrencyDollarIcon
+                className="w-12 h-12 mb-5 p-2 rounded-lg bg-gray-900 dark:bg-gray-800"
+                style={{ color: '#58f334' }}
+              />
+              <h2 className="font-bold text-xl text-white mb-2">
+                Cost Analysis
+              </h2>
+              <p className="text-gray-400 text-base leading-relaxed">
+                Visualize your spending. See exactly how much went into performance vs aesthetics.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="bg-gray-950 dark:bg-gray-900 rounded-xl p-8 flex flex-col justify-between">
+              <UsersIcon
+                className="w-12 h-12 mb-5 p-2 rounded-lg bg-gray-900 dark:bg-gray-800"
+                style={{ color: '#3480f3' }}
+              />
+              <h2 className="font-bold text-xl text-white mb-2">
+                Community Inspiration
+              </h2>
+              <p className="text-gray-400 text-base leading-relaxed">
+                Browse other builds to get ideas. See what parts others are running on your chassis.
+              </p>
+            </div>
           </div>
         </div>
+
       </div>
       <footer className="bg-white dark:bg-gray-900 text-black dark:text-white text-center p-4 border-t border-gray-200 dark:border-gray-700">
         <p>&copy; 2025 Drivn. All rights reserved.</p>

@@ -44,7 +44,6 @@ const VehicleDetails = () => {
   const [logToolsUsed, setLogToolsUsed] = useState("");
 
   //edit logs
-  const [editLogVisible, setEditLogVisible] = useState(false);
 
   const [editingLogId, setEditingLogId] = useState(null);
   const [editedLogTitle, setEditedLogTitle] = useState("");
@@ -78,12 +77,32 @@ const VehicleDetails = () => {
       } else {
         console.log("Maintenance log updated successfully:", data);
         getLogs();
-        setEditLogVisible(false);
         setEditingLogId(null);
       }
 
       setEditUploading(false);
   };
+
+  const handleRemoveLog = async (log_id) => {
+    //Ask if they are sure first
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this maintenance log? This cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    const {data, error} = await supabase
+      .from('vehicle_logs')
+      .delete()
+      .eq('id', log_id);
+    
+      if (error) {
+        console.error("Error deleting vehicle log: ", error);
+      } else {
+        console.log("Maintenance log deleted successfully: ", data)
+        getLogs();
+      }
+  }
 
   const { session } = UserAuth();
   const canEdit = session && vehicle?.user_id === session.user.id;
@@ -532,7 +551,7 @@ const VehicleDetails = () => {
                         {editingLogId === log.id && canEdit &&  (
                           <div>
                             <CheckIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block mr-2 cursor-pointer hover:text-green-500" onClick={(e) => submitLogEdit()}/>
-                            <XCircleIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" />
+                            <XCircleIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" onClick={(e) => setEditingLogId(null)}/>
                           </div>
                         )}
                         <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -614,7 +633,7 @@ const VehicleDetails = () => {
                         {canEdit && (
                           <div>
                             <PencilSquareIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block mr-2 cursor-pointer hover:text-blue-500" onClick={(e) => handleEdit(log.id, log.title, log.description, log.cost, log.date, log.mileage, log.tools_used)}/>
-                            <TrashIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" />
+                            <TrashIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" onClick={(e) => handleRemoveLog(log.id)}/>
                           </div>
                         )}
                         <span className="text-sm text-gray-500 dark:text-gray-400">
