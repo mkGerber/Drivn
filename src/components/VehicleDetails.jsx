@@ -64,6 +64,12 @@ const VehicleDetails = () => {
 
   const [editUploading, setEditUploading] = useState(false)
 
+
+  
+
+
+
+
   const submitLogEdit = async () => {
     setEditUploading(true);
 
@@ -972,105 +978,102 @@ const InfoRow = ({ label, value }) => (
 
 const DiscussionSection = ({ vehicleId }) => {
   const navigate = useNavigate();
+  const { session } = UserAuth();
   
-  const [discussions, setDiscussions] = useState([
-    {
-      id: 1,
-      author: 'CarEnthusiast92',
-      title: 'Love the color on this build!',
-      content: 'That paint job is absolutely stunning. How long have you had it?',
-      upvotes: 24,
-      downvotes: 2,
-      comments: 5,
-      timestamp: '2 hours ago',
-      userVote: null,
-      vehicleId: vehicleId
-    },
-    {
-      id: 2,
-      author: 'MechanicMike',
-      title: 'Great maintenance schedule',
-      content: 'Your maintenance logs are really well organized. What oil do you use?',
-      upvotes: 18,
-      downvotes: 1,
-      comments: 3,
-      timestamp: '5 hours ago',
-      userVote: null,
-      vehicleId: vehicleId
-    },
-    {
-      id: 3,
-      author: 'SpeedDemon',
-      title: 'Mod suggestions?',
-      content: 'Have you considered any performance mods? This platform has great potential.',
-      upvotes: 12,
-      downvotes: 0,
-      comments: 8,
-      timestamp: '1 day ago',
-      userVote: null,
-      vehicleId: vehicleId
-    }
-  ]);
-
+  const [discussions, setDiscussions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [showNewPost, setShowNewPost] = useState(false);
 
-  const handleVote = (id, voteType) => {
-    setDiscussions(prev => prev.map(disc => {
-      if (disc.id === id) {
-        const currentVote = disc.userVote;
-        let newUpvotes = disc.upvotes;
-        let newDownvotes = disc.downvotes;
-        let newUserVote = null;
+  // Fetch discussions from Supabase
+  const fetchDiscussions = async () => {
+    setLoading(true);
+    try {
+      const { data: posts, error } = await supabase
+        .from('posts')
+        .select(`
+          id,
+          title,
+          body,
+          comment_count,
+          created_at,
+          user_id,
+          profiles:user_id (
+            username
+          )
+        `)
+        .eq('vehicle_id', vehicleId)
+        .eq('post_type', 'discussion')
+        .order('created_at', { ascending: false });
 
-        if (currentVote === voteType) {
-          // Undo vote
-          if (voteType === 'up') newUpvotes--;
-          else newDownvotes--;
-        } else {
-          // Remove opposite vote if exists
-          if (currentVote === 'up') newUpvotes--;
-          if (currentVote === 'down') newDownvotes--;
-          
-          // Add new vote
-          if (voteType === 'up') newUpvotes++;
-          else newDownvotes++;
-          newUserVote = voteType;
-        }
-
-        return {
-          ...disc,
-          upvotes: newUpvotes,
-          downvotes: newDownvotes,
-          userVote: newUserVote
-        };
+      if (error) {
+        console.error('Error fetching discussions:', error);
+        setLoading(false);
+        return;
       }
-      return disc;
-    }));
+
+      // Format discussions
+      const formatted = (posts || []).map(post => ({
+        id: post.id,
+        title: post.title,
+        content: post.body,
+        comments: post.comment_count || 0,
+        timestamp: formatTimeAgo(post.created_at),
+        vehicleId: vehicleId,
+        author: post.profiles?.username || 'Unknown'
+      }));
+
+      setDiscussions(formatted);
+    } catch (err) {
+      console.error('Error in fetchDiscussions:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmitPost = (e) => {
+  useEffect(() => {
+    if (vehicleId) {
+      fetchDiscussions();
+    }
+  }, [vehicleId, session?.user?.id]);
+
+
+  const handleSubmitPost = async (e) => {
     e.preventDefault();
     if (!newPostTitle.trim() || !newPostContent.trim()) return;
+    if (!session?.user?.id) {
+      alert('Please sign in to create a post');
+      return;
+    }
 
-    const newPost = {
-      id: discussions.length + 1,
-      author: 'You',
-      title: newPostTitle,
-      content: newPostContent,
-      upvotes: 0,
-      downvotes: 0,
-      comments: 0,
-      timestamp: 'just now',
-      userVote: null,
-      vehicleId: vehicleId
-    };
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .insert({
+          user_id: session.user.id,
+          title: newPostTitle,
+          body: newPostContent,
+          post_type: 'discussion',
+          vehicle_id: vehicleId,
+          comment_count: 0
+        })
+        .select()
+        .single();
 
-    setDiscussions([newPost, ...discussions]);
-    setNewPostTitle('');
-    setNewPostContent('');
-    setShowNewPost(false);
+      if (error) {
+        console.error('Error creating post:', error);
+        alert('Failed to create post. Please try again.');
+      } else {
+        setNewPostTitle('');
+        setNewPostContent('');
+        setShowNewPost(false);
+        fetchDiscussions();
+      }
+    } catch (err) {
+      console.error('Error in handleSubmitPost:', err);
+      alert('Failed to create post. Please try again.');
+    }
   };
 
   return (
@@ -1116,53 +1119,19 @@ const DiscussionSection = ({ vehicleId }) => {
 
       {/* Discussions List */}
       <div className="space-y-4 max-h-[600px] overflow-y-auto">
-        {discussions.map((disc) => (
+        {loading ? (
+          <p className="text-center text-gray-500 dark:text-gray-400 py-4">Loading...</p>
+        ) : discussions.length === 0 ? (
+          <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+            No discussions yet. Start the conversation!
+          </p>
+        ) : (
+          discussions.map((disc) => (
           <div
             key={disc.id}
             className="bg-white dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition"
           >
             <div className="flex gap-3">
-              {/* Vote Section */}
-              <div className="flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleVote(disc.id, 'up');
-                  }}
-                  className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition ${
-                    disc.userVote === 'up' ? 'text-orange-500' : 'text-gray-500'
-                  }`}
-                >
-                  {disc.userVote === 'up' ? (
-                    <ArrowUpSolid className="h-5 w-5" />
-                  ) : (
-                    <ArrowUpIcon className="h-5 w-5" />
-                  )}
-                </button>
-                <span className={`text-sm font-semibold ${
-                  disc.userVote === 'up' ? 'text-orange-500' :
-                  disc.userVote === 'down' ? 'text-blue-500' :
-                  'text-gray-600 dark:text-gray-400'
-                }`}>
-                  {disc.upvotes - disc.downvotes}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleVote(disc.id, 'down');
-                  }}
-                  className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition ${
-                    disc.userVote === 'down' ? 'text-blue-500' : 'text-gray-500'
-                  }`}
-                >
-                  {disc.userVote === 'down' ? (
-                    <ArrowDownSolid className="h-5 w-5" />
-                  ) : (
-                    <ArrowDownIcon className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-
               {/* Content - Clickable */}
               <div 
                 className="flex-1 min-w-0 cursor-pointer"
@@ -1173,7 +1142,7 @@ const DiscussionSection = ({ vehicleId }) => {
                   {disc.content}
                 </p>
                 <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
-                  <span className="font-medium">u/{disc.author}</span>
+                  <span className="font-medium">{disc.author}</span>
                   <span>•</span>
                   <span>{disc.timestamp}</span>
                   <span>•</span>
@@ -1185,138 +1154,268 @@ const DiscussionSection = ({ vehicleId }) => {
               </div>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
-
-      {discussions.length === 0 && (
-        <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-          No discussions yet. Start the conversation!
-        </p>
-      )}
     </div>
   );
+};
+
+// Helper function to format time ago
+const formatTimeAgo = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now - date) / 1000);
+  
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return `${weeks} week${weeks !== 1 ? 's' : ''} ago`;
+  const months = Math.floor(days / 30);
+  return `${months} month${months !== 1 ? 's' : ''} ago`;
 };
 
 /* ------------------ Q&A SECTION ------------------ */
 
 const QASection = ({ vehicleId }) => {
-  const [questions, setQuestions] = useState([
-    {
-      id: 1,
-      author: 'NewOwner123',
-      question: 'What\'s the recommended oil change interval?',
-      answers: [
-        {
-          id: 1,
-          author: 'ExperiencedOwner',
-          content: 'I change mine every 5,000 miles with synthetic oil. Works great!',
-          upvotes: 8,
-          timestamp: '3 hours ago',
-          isAccepted: false
-        },
-        {
-          id: 2,
-          author: 'MechanicPro',
-          content: 'Check your manual, but typically 5,000-7,500 miles for synthetic is standard.',
-          upvotes: 12,
-          timestamp: '1 hour ago',
-          isAccepted: true
-        }
-      ],
-      timestamp: '5 hours ago',
-      isAnswered: true
-    },
-    {
-      id: 2,
-      author: 'CuriousDriver',
-      question: 'Best tire pressure for daily driving?',
-      answers: [
-        {
-          id: 3,
-          author: 'TireExpert',
-          content: 'Usually 32-35 PSI is recommended. Check the sticker on your driver door jamb for exact specs.',
-          upvotes: 5,
-          timestamp: '2 hours ago',
-          isAccepted: false
-        }
-      ],
-      timestamp: '6 hours ago',
-      isAnswered: true
-    },
-    {
-      id: 3,
-      author: 'DIYMechanic',
-      question: 'How difficult is it to replace the brake pads yourself?',
-      answers: [],
-      timestamp: '1 day ago',
-      isAnswered: false
-    }
-  ]);
-
+  const { session } = UserAuth();
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [newQuestion, setNewQuestion] = useState('');
   const [showNewQuestion, setShowNewQuestion] = useState(false);
-  const [expandedQuestion, setExpandedQuestion] = useState(null);
   const [newAnswers, setNewAnswers] = useState({});
 
-  const handleSubmitQuestion = (e) => {
-    e.preventDefault();
-    if (!newQuestion.trim()) return;
+  // Fetch questions from Supabase
+  const fetchQuestions = async () => {
+    setLoading(true);
+    try {
+      const { data: posts, error } = await supabase
+        .from('posts')
+        .select(`
+          id,
+          title,
+          body,
+          comment_count,
+          is_solved,
+          created_at,
+          user_id,
+          profiles:user_id (
+            username
+          )
+        `)
+        .eq('vehicle_id', vehicleId)
+        .eq('post_type', 'question')
+        .order('created_at', { ascending: false });
 
-    const question = {
-      id: questions.length + 1,
-      author: 'You',
-      question: newQuestion,
-      answers: [],
-      timestamp: 'just now',
-      isAnswered: false
-    };
+      if (error) {
+        console.error('Error fetching questions:', error);
+        setLoading(false);
+        return;
+      }
 
-    setQuestions([question, ...questions]);
-    setNewQuestion('');
-    setShowNewQuestion(false);
+      // Fetch answers for each question
+      const questionIds = posts?.map(p => p.id) || [];
+      let allAnswers = {};
+      
+      if (questionIds.length > 0) {
+        const { data: comments } = await supabase
+          .from('comments')
+          .select(`
+            id,
+            body,
+            is_answer,
+            is_accepted,
+            created_at,
+            post_id,
+            parent_id,
+            user_id,
+            profiles:user_id (
+              username
+            )
+          `)
+          .in('post_id', questionIds)
+          .eq('is_answer', true)
+          .order('created_at', { ascending: true });
+
+        if (comments) {
+          // Group comments by post_id (question id)
+          allAnswers = comments.reduce((acc, comment) => {
+            const questionId = comment.post_id;
+            if (!acc[questionId]) {
+              acc[questionId] = [];
+            }
+            acc[questionId].push({
+              id: comment.id,
+              author: comment.profiles?.username || 'Unknown',
+              content: comment.body,
+              upvotes: comment.score || 0,
+              timestamp: formatTimeAgo(comment.created_at),
+              isAccepted: comment.is_accepted || false
+            });
+            return acc;
+          }, {});
+        }
+      }
+
+      // Format questions
+      const formatted = (posts || []).map(post => ({
+        id: post.id,
+        author: post.profiles?.username || 'Unknown',
+        question: post.title || post.body,
+        answers: allAnswers[post.id] || [],
+        timestamp: formatTimeAgo(post.created_at),
+        isAnswered: (allAnswers[post.id]?.length || 0) > 0 || post.is_solved
+      }));
+
+      setQuestions(formatted);
+    } catch (err) {
+      console.error('Error in fetchQuestions:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmitAnswer = (questionId, e) => {
+  useEffect(() => {
+    if (vehicleId) {
+      fetchQuestions();
+    }
+  }, [vehicleId]);
+
+  const handleSubmitQuestion = async (e) => {
+    e.preventDefault();
+    if (!newQuestion.trim()) return;
+    if (!session?.user?.id) {
+      alert('Please sign in to ask a question');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .insert({
+          user_id: session.user.id,
+          title: newQuestion,
+          body: newQuestion,
+          post_type: 'question',
+          vehicle_id: vehicleId,
+          score: 0,
+          comment_count: 0,
+          is_solved: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating question:', error);
+        alert('Failed to create question. Please try again.');
+      } else {
+        setNewQuestion('');
+        setShowNewQuestion(false);
+        fetchQuestions();
+      }
+    } catch (err) {
+      console.error('Error in handleSubmitQuestion:', err);
+      alert('Failed to create question. Please try again.');
+    }
+  };
+
+  const handleSubmitAnswer = async (questionId, e) => {
     e.preventDefault();
     const answerText = newAnswers[questionId];
     if (!answerText?.trim()) return;
+    if (!session?.user?.id) {
+      alert('Please sign in to answer');
+      return;
+    }
 
-    const newAnswer = {
-      id: Date.now(),
-      author: 'You',
-      content: answerText,
-      upvotes: 0,
-      timestamp: 'just now',
-      isAccepted: false
-    };
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert({
+          user_id: session.user.id,
+          post_id: questionId,
+          parent_id: null,
+          body: answerText,
+          is_answer: true,
+          is_accepted: false
+        });
 
-    setQuestions(prev => prev.map(q => {
-      if (q.id === questionId) {
-        return {
-          ...q,
-          answers: [...q.answers, newAnswer],
-          isAnswered: true
-        };
+      if (error) {
+        console.error('Error creating answer:', error);
+        alert('Failed to post answer. Please try again.');
+      } else {
+        // Update comment count
+        const { data: post } = await supabase
+          .from('posts')
+          .select('comment_count')
+          .eq('id', questionId)
+          .single();
+
+        if (post) {
+          await supabase
+            .from('posts')
+            .update({ comment_count: (post.comment_count || 0) + 1 })
+            .eq('id', questionId);
+        }
+
+        setNewAnswers(prev => ({ ...prev, [questionId]: '' }));
+        fetchQuestions();
       }
-      return q;
-    }));
-
-    setNewAnswers(prev => ({ ...prev, [questionId]: '' }));
+    } catch (err) {
+      console.error('Error in handleSubmitAnswer:', err);
+      alert('Failed to post answer. Please try again.');
+    }
   };
 
-  const handleAcceptAnswer = (questionId, answerId) => {
-    setQuestions(prev => prev.map(q => {
-      if (q.id === questionId) {
-        return {
-          ...q,
-          answers: q.answers.map(a => ({
-            ...a,
-            isAccepted: a.id === answerId
-          }))
-        };
+  const handleAcceptAnswer = async (questionId, answerId) => {
+    if (!session?.user?.id) {
+      alert('Please sign in to accept answers');
+      return;
+    }
+
+    try {
+      // Check if user owns the question
+      const { data: question } = await supabase
+        .from('posts')
+        .select('user_id')
+        .eq('id', questionId)
+        .single();
+
+      if (!question || question.user_id !== session.user.id) {
+        alert('Only the question author can accept answers');
+        return;
       }
-      return q;
-    }));
+
+      // Unaccept all other answers for this question
+      await supabase
+        .from('comments')
+        .update({ is_accepted: false })
+        .eq('post_id', questionId)
+        .eq('is_answer', true);
+
+      // Accept the selected answer
+      const { error } = await supabase
+        .from('comments')
+        .update({ is_accepted: true })
+        .eq('id', answerId);
+
+      if (!error) {
+        // Mark question as solved
+        await supabase
+          .from('posts')
+          .update({ is_solved: true })
+          .eq('id', questionId);
+
+        fetchQuestions();
+      }
+    } catch (err) {
+      console.error('Error accepting answer:', err);
+    }
   };
 
   return (
@@ -1355,7 +1454,14 @@ const QASection = ({ vehicleId }) => {
 
       {/* Questions List */}
       <div className="space-y-4 max-h-[600px] overflow-y-auto">
-        {questions.map((q) => (
+        {loading ? (
+          <p className="text-center text-gray-500 dark:text-gray-400 py-4">Loading...</p>
+        ) : questions.length === 0 ? (
+          <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+            No questions yet. Be the first to ask!
+          </p>
+        ) : (
+          questions.map((q) => (
           <div
             key={q.id}
             className="bg-white dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition"
@@ -1371,7 +1477,7 @@ const QASection = ({ vehicleId }) => {
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-sm mb-1">{q.question}</h3>
                 <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
-                  <span>u/{q.author}</span>
+                  <span>{q.author}</span>
                   <span>•</span>
                   <span>{q.timestamp}</span>
                   {q.isAnswered && (
@@ -1406,7 +1512,7 @@ const QASection = ({ vehicleId }) => {
                     </p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
-                        <span>u/{answer.author}</span>
+                        <span>{answer.author}</span>
                         <span>•</span>
                         <span>{answer.timestamp}</span>
                         <span>•</span>
@@ -1448,14 +1554,9 @@ const QASection = ({ vehicleId }) => {
               </form>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
-
-      {questions.length === 0 && (
-        <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-          No questions yet. Be the first to ask!
-        </p>
-      )}
     </div>
   );
 };

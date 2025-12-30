@@ -3,6 +3,9 @@
 /* Configure dark mode variant for Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
 
+
+
+
 /* ---------- Global reset ---------- */
 * {
   box-sizing: border-box;
