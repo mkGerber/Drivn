@@ -333,18 +333,10 @@ const DiscussionDetail = () => {
           className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition"
         >
           <ArrowLeftIcon className="h-5 w-5" />
-          <span>Back</span>
+          <span>{discussion.vehicleName}</span>
         </button>
 
-        {/* Vehicle Link */}
-        <div className="mb-4">
-          <button
-            onClick={() => navigate(`/vehicle/${discussion.vehicleId}`)}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            ← {discussion.vehicleName}
-          </button>
-        </div>
+       
 
         {/* Main Discussion Post */}
         <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6">

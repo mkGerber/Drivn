@@ -1,49 +1,113 @@
-import React, {useState} from 'react'
-import { Link } from 'react-router-dom'
-import { UserAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-
+import React, { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { UserAuth } from '../context/AuthContext'
+import Navbar from '../components/Navbar'
+import logo from '../assets/drivn_logo.png'
 
 const SignIn = () => {
-const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-const [error, setError] = useState("");
-const [loading, setLoading] = useState("");
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-const {session, signInUser} = UserAuth();
-const navigate = useNavigate()
-console.log(session);
+  const { signInUser } = UserAuth()
+  const navigate = useNavigate()
 
-const handleSignIn = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  try {
-    const result = await signInUser(email, password);
+  const handleSignIn = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
 
-    if (result.success) {
-      navigate('/garage');
+    try {
+      const result = await signInUser(email, password)
+      if (result.success) {
+        navigate('/garage')
+      } else {
+        setError(result.error || 'Invalid email or password')
+      }
+    } catch {
+      setError('An error occurred while signing in')
+    } finally {
+      setLoading(false)
     }
-  } catch (err) {
-    setError("an error occurred");
-  } finally {
-    setLoading(false);
   }
-}
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
-        <Navbar />
-        <form onSubmit={handleSignIn} className="max-w-md m-auto pt-24">
-            <h2 className="font-bold pb-2 text-black dark:text-white">Sign in!</h2>
-            <p className="text-black dark:text-white">Don't have an account? <Link to="/signup" className="text-blue-600 dark:text-blue-400">Sign up!</Link></p>
-            <div className="flex flex-col py-4">
-                <input onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="p-3 mt-6 bg-amber-300 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" type="email" />
-                <input onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="p-3 mt-6 bg-amber-300 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" type="password" />
-                <button type="submit" disabled={loading}  className="mt-4 w-full bg-gray-800 dark:bg-gray-700 text-white dark:text-white hover:bg-gray-700 dark:hover:bg-gray-600">Sign In</button>
-                {error && <p className="text-red-600 dark:text-red-400 text-center pt-4">{error}</p>}
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+      <Navbar />
+
+      <div className="flex justify-center pt-24 px-4">
+        <form
+          onSubmit={handleSignIn}
+          className="w-full max-w-md bg-white/80 dark:bg-gray-800/80
+                     backdrop-blur-lg rounded-2xl shadow-xl px-6 py-8"
+        >
+          {/* Header */}
+          <div className="flex flex-col items-center mb-8">
+            <img
+              src={logo}
+              alt="drivn"
+              className="w-20 h-20 mb-3"
+            />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Welcome back
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              New to drivn?{' '}
+              <Link
+                to="/signup"
+                className="text-blue-600 dark:text-blue-400 font-medium"
+              >
+                Create an account
+              </Link>
+            </p>
+          </div>
+
+          {/* Email */}
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full p-3 mt-4 rounded-lg bg-gray-100 dark:bg-gray-700
+                       text-gray-900 dark:text-white placeholder-gray-400
+                       focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+
+          {/* Password */}
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full p-3 mt-4 rounded-lg bg-gray-100 dark:bg-gray-700
+                       text-gray-900 dark:text-white placeholder-gray-400
+                       focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+
+          {/* Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-6 w-full py-3 rounded-lg font-semibold text-white
+                       bg-gradient-to-r from-blue-600 to-blue-500
+                       hover:from-blue-500 hover:to-blue-400
+                       transition-all duration-200
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+
+          {/* Error */}
+          {error && (
+            <p className="text-red-600 dark:text-red-400 text-center mt-4 text-sm">
+              {error}
+            </p>
+          )}
         </form>
+      </div>
     </div>
   )
 }

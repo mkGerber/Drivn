@@ -953,8 +953,8 @@ const VehicleDetails = () => {
 
           {/* RIGHT COLUMN - Discussion & Q&A Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            <DiscussionSection vehicleId={id} />
-            <QASection vehicleId={id} />
+            <DiscussionSection vehicleId={id} vehicleOwnerId={vehicle?.user_id} />
+            <QASection vehicleId={id} vehicleOwnerId={vehicle?.user_id} />
           </div>
         </div>
 
@@ -976,9 +976,10 @@ const InfoRow = ({ label, value }) => (
 
 /* ------------------ DISCUSSION SECTION ------------------ */
 
-const DiscussionSection = ({ vehicleId }) => {
+const DiscussionSection = ({ vehicleId, vehicleOwnerId }) => {
   const navigate = useNavigate();
   const { session } = UserAuth();
+  const isOwner = session?.user?.id === vehicleOwnerId;
   
   const [discussions, setDiscussions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1083,12 +1084,14 @@ const DiscussionSection = ({ vehicleId }) => {
           <ChatBubbleLeftIcon className="h-6 w-6 text-blue-500" />
           Discussions
         </h2>
-        <button
-          onClick={() => setShowNewPost(!showNewPost)}
-          className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition"
-        >
-          {showNewPost ? 'Cancel' : '+ New Post'}
-        </button>
+        {!isOwner && (
+          <button
+            onClick={() => setShowNewPost(!showNewPost)}
+            className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition"
+          >
+            {showNewPost ? 'Cancel' : '+ New Post'}
+          </button>
+        )}
       </div>
 
       {/* New Post Form */}
@@ -1182,8 +1185,9 @@ const formatTimeAgo = (dateString) => {
 
 /* ------------------ Q&A SECTION ------------------ */
 
-const QASection = ({ vehicleId }) => {
+const QASection = ({ vehicleId, vehicleOwnerId }) => {
   const { session } = UserAuth();
+  const isOwner = session?.user?.id === vehicleOwnerId;
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newQuestion, setNewQuestion] = useState('');
@@ -1223,26 +1227,35 @@ const QASection = ({ vehicleId }) => {
       let allAnswers = {};
       
       if (questionIds.length > 0) {
-        const { data: comments } = await supabase
+        // Fetch answers without nested relationship to avoid errors
+        const { data: comments, error: commentsError } = await supabase
           .from('comments')
-          .select(`
-            id,
-            body,
-            is_answer,
-            is_accepted,
-            created_at,
-            post_id,
-            parent_id,
-            user_id,
-            profiles:user_id (
-              username
-            )
-          `)
+          .select('id, body, is_answer, is_accepted, created_at, post_id, parent_id, user_id')
           .in('post_id', questionIds)
           .eq('is_answer', true)
           .order('created_at', { ascending: true });
 
-        if (comments) {
+        if (commentsError) {
+          console.error('Error fetching answers:', commentsError);
+        } else if (comments && comments.length > 0) {
+          // Fetch usernames separately
+          const userIds = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
+          let usernameMap = {};
+          
+          if (userIds.length > 0) {
+            const { data: profilesData } = await supabase
+              .from('profiles')
+              .select('id, username')
+              .in('id', userIds);
+            
+            if (profilesData) {
+              usernameMap = profilesData.reduce((acc, profile) => {
+                acc[profile.id] = profile.username;
+                return acc;
+              }, {});
+            }
+          }
+
           // Group comments by post_id (question id)
           allAnswers = comments.reduce((acc, comment) => {
             const questionId = comment.post_id;
@@ -1251,7 +1264,7 @@ const QASection = ({ vehicleId }) => {
             }
             acc[questionId].push({
               id: comment.id,
-              author: comment.profiles?.username || 'Unknown',
+              author: usernameMap[comment.user_id] || 'Unknown',
               content: comment.body,
               timestamp: formatTimeAgo(comment.created_at),
               isAccepted: comment.is_accepted || false
@@ -1262,15 +1275,19 @@ const QASection = ({ vehicleId }) => {
       }
 
       // Format questions
-      const formatted = (posts || []).map(post => ({
-        id: post.id,
-        author: post.profiles?.username || 'Unknown',
-        question: post.title || post.body,
-        answers: allAnswers[post.id] || [],
-        timestamp: formatTimeAgo(post.created_at),
-        isAnswered: (allAnswers[post.id]?.length || 0) > 0 || post.is_solved
-      }));
+      const formatted = (posts || []).map(post => {
+        const questionAnswers = allAnswers[post.id] || [];
+        return {
+          id: post.id,
+          author: post.profiles?.username || 'Unknown',
+          question: post.title || post.body,
+          answers: questionAnswers,
+          timestamp: formatTimeAgo(post.created_at),
+          isAnswered: questionAnswers.length > 0 || post.is_solved
+        };
+      });
 
+      console.log('Formatted questions with answers:', formatted);
       setQuestions(formatted);
     } catch (err) {
       console.error('Error in fetchQuestions:', err);
@@ -1423,12 +1440,14 @@ const QASection = ({ vehicleId }) => {
           <QuestionMarkCircleIcon className="h-6 w-6 text-green-500" />
           Q&A
         </h2>
-        <button
-          onClick={() => setShowNewQuestion(!showNewQuestion)}
-          className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md transition"
-        >
-          {showNewQuestion ? 'Cancel' : '+ Ask Question'}
-        </button>
+        {!isOwner && (
+          <button
+            onClick={() => setShowNewQuestion(!showNewQuestion)}
+            className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md transition"
+          >
+            {showNewQuestion ? 'Cancel' : '+ Ask Question'}
+          </button>
+        )}
       </div>
 
       {/* New Question Form */}
@@ -1513,13 +1532,8 @@ const QASection = ({ vehicleId }) => {
                         <span>{answer.author}</span>
                         <span>•</span>
                         <span>{answer.timestamp}</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <ArrowUpIcon className="h-3 w-3" />
-                          {answer.upvotes}
-                        </span>
                       </div>
-                      {!answer.isAccepted && (
+                      {!answer.isAccepted && !isOwner && (
                         <button
                           onClick={() => handleAcceptAnswer(q.id, answer.id)}
                           className="text-xs text-green-600 dark:text-green-400 hover:underline"
