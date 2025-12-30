@@ -583,16 +583,18 @@ const VehicleDetails = () => {
             <div>
               <button
                 onClick={() => {setAddGasVisible(!addGasVisible); setAddLogVisible(false)}}
-                className="mr-2 bg-orange-400  text-white dark:text-white hover:bg-orange-500  rounded px-4 py-2"
+                className="mr-2 bg-orange-400 text-white dark:text-white hover:bg-orange-500 rounded px-4 py-2 text-base sm:px-3 sm:py-1 sm:text-sm"
               >
                 {addGasVisible ? 'Cancel' : 'Add Gas'}
               </button>
+
               <button
                 onClick={() => {setAddLogVisible(!addLogVisible); setGasLogVisible(false)}}
-                className="bg-gray-800 dark:bg-gray-700 text-white dark:text-white hover:bg-gray-700 dark:hover:bg-gray-600 rounded px-4 py-2"
+                className="bg-gray-800 dark:bg-gray-700 text-white dark:text-white hover:bg-gray-700 dark:hover:bg-gray-600 rounded px-4 py-2 text-base sm:px-3 sm:py-1 sm:text-sm"
               >
                 {addLogVisible ? 'Cancel' : 'Add Log'}
               </button>
+
             </div>
           )}
         </div>
