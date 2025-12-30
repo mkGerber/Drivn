@@ -197,11 +197,19 @@ const Profile = () => {
 
         {/* Profile Header */}
         <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-6">
-          <div className="flex items-center gap-6">
-
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={uploadImage}
+            className="hidden"
+          />
+          
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Avatar - Clickable */}
             <div 
-              className="w-24 h-24 rounded-full bg-gray-300 dark:bg-neutral-700 overflow-hidden cursor-pointer relative group"
+              className="w-24 h-24 flex-shrink-0 rounded-full bg-gray-300 dark:bg-neutral-700 overflow-hidden cursor-pointer relative group z-10"
               onClick={() => fileInputRef.current?.click()}
               title="Click to change profile photo"
             >
@@ -226,31 +234,22 @@ const Profile = () => {
                 </svg>
               </div>
               {uploading && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
                   <div className="text-white text-sm">Uploading...</div>
                 </div>
               )}
             </div>
-            
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={uploadImage}
-              className="hidden"
-            />
 
             {/* Info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-4">
+            <div className="flex-1 w-full text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4">
                 <h1 className="text-xl font-semibold">
                   @{profile.username || 'username'}
                 </h1>
 
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-1.5 text-sm border border-gray-300 dark:border-neutral-700 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800"
+                  className="px-4 py-1.5 text-sm border border-gray-700 dark:border-neutral-700 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800 dark:bg-gray-800 bg-gray-300"
                 >
                   Edit profile
                 </button>
@@ -261,7 +260,7 @@ const Profile = () => {
               </p>
 
               {profile.bio && (
-                <p className="mt-3 text-sm max-w-md">
+                <p className="mt-3 text-sm max-w-md mx-auto sm:mx-0">
                   {profile.bio}
                 </p>
               )}
@@ -343,14 +342,14 @@ const Profile = () => {
         <div className="mt-6 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-6 space-y-3">
           <button
             onClick={toggleDarkMode}
-            className="w-full text-left text-sm px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800"
+            className="w-full text-left text-sm px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800 bg-gray-300 dark:bg-gray-800"
           >
             Switch to {darkMode ? 'Light' : 'Dark'} mode
           </button>
 
           <button
             onClick={handleSignOut}
-            className="w-full text-left text-sm px-3 py-2 rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-neutral-800"
+            className="w-full text-left text-sm px-3 py-2 rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-neutral-800 bg-red-100"
           >
             Sign out
           </button>
