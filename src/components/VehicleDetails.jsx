@@ -1253,7 +1253,6 @@ const QASection = ({ vehicleId }) => {
               id: comment.id,
               author: comment.profiles?.username || 'Unknown',
               content: comment.body,
-              upvotes: comment.score || 0,
               timestamp: formatTimeAgo(comment.created_at),
               isAccepted: comment.is_accepted || false
             });
@@ -1303,7 +1302,6 @@ const QASection = ({ vehicleId }) => {
           body: newQuestion,
           post_type: 'question',
           vehicle_id: vehicleId,
-          score: 0,
           comment_count: 0,
           is_solved: false
         })
