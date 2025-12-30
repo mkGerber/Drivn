@@ -41,6 +41,7 @@ const VehicleDetails = () => {
 
   //Log form
   const [addLogVisible, setAddLogVisible] = useState(false);
+  const [addGasVisible, setAddGasVisible] = useState(false);
 
   const [logTitle, setLogTitle] = useState(null);
   const [logDescription, setLogDescription] = useState("");
@@ -299,6 +300,40 @@ const VehicleDetails = () => {
       setAddLogVisible(false);
     }
 
+    const addGasLog = async (e) => {
+      setLogUploading(true);
+      e.preventDefault();
+      const newLogData = {
+        vehicle_id: id,
+        user_id: session.user.id,
+        title: "Gas",
+        cost: logCost,
+        date: logDate,
+        mileage: logMileage,
+        gas: true
+      };
+      const { data, error } = await supabase.from("vehicle_logs").insert([newLogData]).single();
+
+      if (error) {
+        console.error("Error adding Gas log:", error);
+      } else {
+        console.log("Gas log added successfully:", data);
+      }
+      setLogUploading(false);
+      setLogTitle("");
+      setLogDescription("");
+      setLogCost("");
+      setLogDate("");
+      setLogMileage("");
+      setLogToolsUsed("");
+      setLogLaborHours(0);
+      setLogPerformer("");
+      setLogNotes("");
+
+      getLogs();
+      setAddGasVisible(false);
+    }
+
     /* ------------------ DELETE VEHICLE ------------------ */
     const deleteVehicle = async () => {
       const confirmed = window.confirm(
@@ -545,12 +580,20 @@ const VehicleDetails = () => {
         <div className="flex items-center justify-between mt-12 mb-4">
           <h2 className="text-2xl font-bold">Maintenance Logs</h2>
           {canEdit && (
-            <button
-              onClick={() => setAddLogVisible(!addLogVisible)}
-              className="bg-gray-800 dark:bg-gray-700 text-white dark:text-white hover:bg-gray-700 dark:hover:bg-gray-600 rounded px-4 py-2"
-            >
-              {addLogVisible ? 'Cancel' : 'Add Log'}
-            </button>
+            <div>
+              <button
+                onClick={() => {setAddGasVisible(!addGasVisible); setAddLogVisible(false)}}
+                className="mr-2 bg-orange-400  text-white dark:text-white hover:bg-orange-500  rounded px-4 py-2"
+              >
+                {addGasVisible ? 'Cancel' : 'Add Gas'}
+              </button>
+              <button
+                onClick={() => {setAddLogVisible(!addLogVisible); setGasLogVisible(false)}}
+                className="bg-gray-800 dark:bg-gray-700 text-white dark:text-white hover:bg-gray-700 dark:hover:bg-gray-600 rounded px-4 py-2"
+              >
+                {addLogVisible ? 'Cancel' : 'Add Log'}
+              </button>
+            </div>
           )}
         </div>
 
@@ -746,6 +789,99 @@ const VehicleDetails = () => {
           </div>
         )}
 
+        {/* Add Gas Logs */}
+        {canEdit && addGasVisible && (
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 shadow-xl mt-6 border border-gray-200 dark:border-gray-700">
+            
+            {/* Header */}
+            <div className="mb-5">
+              <h3 className="text-xl font-bold text-black dark:text-white">
+                Add Gas!
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Keep track of when you get gas
+              </p>
+            </div>
+
+            <form className="space-y-4" onSubmit={addGasLog}>
+
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Fields marked with <span className="text-red-500">*</span> are required
+              </p>
+              
+
+              {/* Cost + Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Cost ($) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="0.00"
+                    value={logCost}
+                    onChange={(e) => setLogCost(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500
+                              invalid:border-red-500 invalid:ring-red-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={logDate}
+                    onChange={(e) => setLogDate(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500
+                              invalid:border-red-500 invalid:ring-red-500"
+                  />
+                </div>
+              </div>
+              {/* Mileage*/}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Mileage
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Mileage"
+                    value={logMileage}
+                    onChange={(e) => setLogMileage(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={logUploading}
+                className="w-full mt-2 bg-gradient-to-r from-orange-500 to-red-500
+                          text-white font-semibold py-3 rounded-lg
+                          hover:opacity-90 transition disabled:opacity-50"
+              >
+                {logUploading ? 'Adding Log…' : 'Add Gas Log'}
+              </button>
+
+            </form>
+
+          </div>
+        )}
+
         {/* Maintenance Logs */}
         <div className="mt-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
@@ -793,10 +929,10 @@ const VehicleDetails = () => {
               {maintenanceLogs.map((log) => (
                 <div key={log.id} className="relative pl-8">
                   {/* Timeline dot */}
-                  <span className="absolute -left-[9px] top-2 h-4 w-4 rounded-full bg-blue-600" />
+                  <span className={`absolute -left-[9px] top-2 h-4 w-4 rounded-full ${log.gas ? 'bg-orange-600' : 'bg-blue-600'}`} />
 
                   {editingLogId === log.id ? (
-                    <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow-lg">
+                    <div className={`rounded-xl p-5 shadow-lg ${log.gas ? 'bg-orange-500 dark:bg-yellow-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
                     {/* Header */}
                     <div className="flex items-center justify-between">
                       {/*Edit Title*/}
@@ -819,8 +955,8 @@ const VehicleDetails = () => {
                       
                     </div>
 
-                    {/* Edit Description */}
-                      {log.description && (
+                    {/* Edit Description - Only show if not gas log */}
+                      {!log.gas && log.description && (
                         <textarea
                           value={editedLogDescription}
                           onChange={(e) => setEditedLogDescription(e.target.value)}
@@ -831,59 +967,99 @@ const VehicleDetails = () => {
 
 
                     {/* Edit Metadata */}
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                      {log.mileage && (
-                        <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
-                          <span className="block text-gray-500 dark:text-gray-400">
-                            Mileage
-                          </span>
-                          <input 
-                            className="font-semibold"
-                            type="text"
-                            value={editedLogMileage}
-                            onChange={(e) => setEditedLogMileage(e.target.value)}
-                          />
-                          <span className="font-semibold">
-                             mi
-                          </span>
-                        </div>
-                      )}
+                    {log.gas ? (
+                      /* Gas log - only mileage and cost */
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        {log.mileage && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Mileage
+                            </span>
+                            <input 
+                              className="font-semibold"
+                              type="text"
+                              value={editedLogMileage}
+                              onChange={(e) => setEditedLogMileage(e.target.value)}
+                            />
+                            <span className="font-semibold">
+                               mi
+                            </span>
+                          </div>
+                        )}
 
-                      {log.cost && (
-                        <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
-                          <span className="block text-gray-500 dark:text-gray-400">
-                            Cost
-                          </span>
-                          <span className="font-semibold">
-                            $
-                          </span>
-                          <input 
-                            className="font-semibold"
-                            type="text"
-                            value={editedLogCost}
-                            onChange={(e) => setEditedLogCost(e.target.value)}
-                          />
-                        </div>
-                      )}
+                        {log.cost && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Cost
+                            </span>
+                            <span className="font-semibold">
+                              $
+                            </span>
+                            <input 
+                              className="font-semibold"
+                              type="text"
+                              value={editedLogCost}
+                              onChange={(e) => setEditedLogCost(e.target.value)}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Regular log - all fields */
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        {log.mileage && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Mileage
+                            </span>
+                            <input 
+                              className="font-semibold"
+                              type="text"
+                              value={editedLogMileage}
+                              onChange={(e) => setEditedLogMileage(e.target.value)}
+                            />
+                            <span className="font-semibold">
+                               mi
+                            </span>
+                          </div>
+                        )}
 
-                      {log.tools_used && (
-                        <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 col-span-2">
-                          <span className="block text-gray-500 dark:text-gray-400">
-                            Tools Used
-                          </span>
-                          <input 
-                            className="font-semibold"
-                            type="text"
-                            value={editedLogToolsUsed}
-                            onChange={(e) => setEditedLogToolsUsed(e.target.value)}
-                          />
-                          
-                        </div>
-                      )}
-                    </div>
+                        {log.cost && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Cost
+                            </span>
+                            <span className="font-semibold">
+                              $
+                            </span>
+                            <input 
+                              className="font-semibold"
+                              type="text"
+                              value={editedLogCost}
+                              onChange={(e) => setEditedLogCost(e.target.value)}
+                            />
+                          </div>
+                        )}
+
+                        {log.tools_used && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 col-span-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Tools Used
+                            </span>
+                            <input 
+                              className="font-semibold"
+                              type="text"
+                              value={editedLogToolsUsed}
+                              onChange={(e) => setEditedLogToolsUsed(e.target.value)}
+                            />
+                            
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   ) : (
-                    <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow-lg">
+                    <div className={`rounded-xl p-5 shadow-lg ${log.gas ? 'bg-orange-300 dark:bg-yellow-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
                     {/* Header */}
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold">{log.title}</h3>
@@ -901,46 +1077,100 @@ const VehicleDetails = () => {
                       
                     </div>
 
-                    {/* Description */}
-                    {log.description && (
+                    {/* Description - Only show if not gas log */}
+                    {!log.gas && log.description && (
                       <p className="mt-2 text-gray-700 dark:text-gray-300">
                         {log.description}
                       </p>
                     )}
 
                     {/* Metadata */}
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                      {log.mileage && (
-                        <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
-                          <span className="block text-gray-500 dark:text-gray-400">
-                            Mileage
-                          </span>
-                          <span className="font-semibold">
-                            {log.mileage.toLocaleString()} mi
-                          </span>
-                        </div>
-                      )}
+                    {log.gas ? (
+                      /* Gas log - only mileage and cost */
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        {log.mileage && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Mileage
+                            </span>
+                            <span className="font-semibold">
+                              {log.mileage.toLocaleString()} mi
+                            </span>
+                          </div>
+                        )}
 
-                      {log.cost && (
-                        <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
-                          <span className="block text-gray-500 dark:text-gray-400">
-                            Cost
-                          </span>
-                          <span className="font-semibold">
-                            ${Number(log.cost).toFixed(2)}
-                          </span>
-                        </div>
-                      )}
+                        {log.cost && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Cost
+                            </span>
+                            <span className="font-semibold">
+                              ${Number(log.cost).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Regular log - all fields */
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        {log.mileage && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Mileage
+                            </span>
+                            <span className="font-semibold">
+                              {log.mileage.toLocaleString()} mi
+                            </span>
+                          </div>
+                        )}
 
-                      {log.tools_used && (
-                        <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 col-span-2">
-                          <span className="block text-gray-500 dark:text-gray-400">
-                            Tools Used
-                          </span>
-                          <span className="font-semibold">{log.tools_used}</span>
-                        </div>
-                      )}
-                    </div>
+                        {log.cost && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Cost
+                            </span>
+                            <span className="font-semibold">
+                              ${Number(log.cost).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+
+                        {log.tools_used && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 col-span-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Tools Used
+                            </span>
+                            <span className="font-semibold">{log.tools_used}</span>
+                          </div>
+                        )}
+
+                        {log.labor_hours && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Labor Hours
+                            </span>
+                            <span className="font-semibold">{log.labor_hours}</span>
+                          </div>
+                        )}
+                        {log.performed_by && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Performed by
+                            </span>
+                            <span className="font-semibold">{log.performed_by}</span>
+                          </div>
+                        )}
+
+                        {log.notes && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 col-span-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Tools Used
+                            </span>
+                            <span className="font-semibold">{log.notes}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   )}
                   
