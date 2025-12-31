@@ -1,10 +1,15 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import Navbar from './Navbar';
 import {HomeIcon, UserIcon, WrenchIcon, CurrencyDollarIcon, UsersIcon} from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { UserAuth } from '../context/AuthContext';
 
 const Home = () => {
+  const {session} = UserAuth();
   const navigate = useNavigate();
+  
+
+  
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <Navbar />

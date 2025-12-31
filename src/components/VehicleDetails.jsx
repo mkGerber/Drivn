@@ -11,14 +11,18 @@ import {ArrowUpIcon as ArrowUpSolid, ArrowDownIcon as ArrowDownSolid} from '@her
 
 const VehicleDetails = () => {
 
-  const handleEdit = (log_id, title, description, cost, date, mileage, toolsUsed) => {
-    setEditingLogId(log_id);
-    setEditedLogTitle(title);
-    setEditedLogDescription(description);
-    setEditedLogCost(cost);
-    setEditedLogDate(date);
-    setEditedLogMileage(mileage);
-    setEditedLogToolsUsed(toolsUsed);
+  const handleEdit = (log) => {
+    setEditingLogId(log.id);
+    setEditedLogTitle(log.title);
+    setEditedLogDescription(log.description);
+    setEditedLogCost(log.cost);
+    setEditedLogDate(log.date);
+    setEditedLogMileage(log.mileage);
+    setEditedLogToolsUsed(log.tools_used);
+    setEditedLogLaborHours(log.labor_hours);
+    setEditedLogPerformer(log.performed_by);
+    setEditedLogNotes(log.notes);
+    setEditedLogGallons(log.Gallons);
   }
 
   const { id } = useParams();
@@ -52,6 +56,7 @@ const VehicleDetails = () => {
   const [logLaborHours, setLogLaborHours] = useState(0);
   const [logPerformer, setLogPerformer] = useState("");
   const [logNotes, setLogNotes] = useState("");
+  const [logGallons, setLogGallons] = useState(null);
 
   //edit logs
 
@@ -62,6 +67,10 @@ const VehicleDetails = () => {
   const [editedLogDate, setEditedLogDate] = useState("");
   const [editedLogMileage, setEditedLogMileage] = useState("");
   const [editedLogToolsUsed, setEditedLogToolsUsed] = useState("");
+  const [editedLogLaborHours, setEditedLogLaborHours] = useState(null)
+  const [editedLogPerformer, setEditedLogPerformer] = useState("");
+  const [editedLogNotes, setEditedLogNotes] = useState("");
+  const [editedLogGallons, setEditedLogGallons] = useState(null);
 
   const [editUploading, setEditUploading] = useState(false)
 
@@ -83,7 +92,11 @@ const VehicleDetails = () => {
         cost: editedLogCost,
         date: editedLogDate,
         mileage: editedLogMileage,
-        tools_used: editedLogToolsUsed
+        tools_used: editedLogToolsUsed,
+        labor_hours: editedLogLaborHours,
+        performed_by: editedLogPerformer,
+        notes: editedLogNotes,
+        gas_gallons: editedLogGallons
       })
       .eq('id', editingLogId)
       .single();
@@ -310,7 +323,8 @@ const VehicleDetails = () => {
         cost: logCost,
         date: logDate,
         mileage: logMileage,
-        gas: true
+        gas: true,
+        gas_gallons: logGallons
       };
       const { data, error } = await supabase.from("vehicle_logs").insert([newLogData]).single();
 
@@ -662,6 +676,7 @@ const VehicleDetails = () => {
                   <input
                     type="number"
                     min="0"
+                    step="any"
                     required
                     placeholder="0.00"
                     value={logCost}
@@ -821,6 +836,7 @@ const VehicleDetails = () => {
                   <input
                     type="number"
                     min="0"
+                    step="any"
                     required
                     placeholder="0.00"
                     value={logCost}
@@ -848,7 +864,7 @@ const VehicleDetails = () => {
                   />
                 </div>
               </div>
-              {/* Mileage*/}
+              {/* Mileage + Gallons*/}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -857,9 +873,26 @@ const VehicleDetails = () => {
                   <input
                     type="number"
                     min="0"
-                    placeholder="Mileage"
+                    placeholder="0"
                     value={logMileage}
                     onChange={(e) => setLogMileage(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Gallons
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0.0"
+                    value={logGallons}
+                    onChange={(e) => setLogGallons(e.target.value)}
                     className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
                               border border-gray-300 dark:border-gray-600 rounded-lg
                               focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -1005,6 +1038,23 @@ const VehicleDetails = () => {
                             />
                           </div>
                         )}
+
+                        {log.gas_gallons && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Gallons
+                            </span>
+                            <span className="font-semibold">
+                              $
+                            </span>
+                            <input 
+                              className="font-semibold"
+                              type="text"
+                              value={editedLogGallons}
+                              onChange={(e) => setEditedLogGallons(e.target.value)}
+                            />
+                          </div>
+                        )}
                       </div>
                     ) : (
                       /* Regular log - all fields */
@@ -1037,6 +1087,7 @@ const VehicleDetails = () => {
                             <input 
                               className="font-semibold"
                               type="text"
+                              step="any"
                               value={editedLogCost}
                               onChange={(e) => setEditedLogCost(e.target.value)}
                             />
@@ -1057,6 +1108,48 @@ const VehicleDetails = () => {
                             
                           </div>
                         )}
+
+                        {log.labor_hours && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 ">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Labor Hours
+                            </span>
+                            <input 
+                              className="font-semibold"
+                              type="text"
+                              value={editedLogLaborHours}
+                              onChange={(e) => setEditedLogLaborHours(e.target.value)}
+                            />
+                          </div>
+                        )}
+
+                        {log.performed_by && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 ">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Performed by
+                            </span>
+                            <input 
+                              className="font-semibold"
+                              type="text"
+                              value={editedLogPerformer}
+                              onChange={(e) => setEditedLogPerformer(e.target.value)}
+                            />
+                          </div>
+                        )}
+
+                        {log.notes && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 col-span-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Notes
+                            </span>
+                            <input 
+                              className="font-semibold"
+                              type="text"
+                              value={editedLogNotes}
+                              onChange={(e) => setEditedLogNotes(e.target.value)}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1068,7 +1161,7 @@ const VehicleDetails = () => {
                       <div>
                         {canEdit && (
                           <div>
-                            <PencilSquareIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block mr-2 cursor-pointer hover:text-blue-500" onClick={(e) => handleEdit(log.id, log.title, log.description, log.cost, log.date, log.mileage, log.tools_used)}/>
+                            <PencilSquareIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block mr-2 cursor-pointer hover:text-blue-500" onClick={(e) => handleEdit(log)}/>
                             <TrashIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" onClick={(e) => handleRemoveLog(log.id)}/>
                           </div>
                         )}
@@ -1089,7 +1182,7 @@ const VehicleDetails = () => {
                     {/* Metadata */}
                     {log.gas ? (
                       /* Gas log - only mileage and cost */
-                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                      <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
                         {log.mileage && (
                           <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
                             <span className="block text-gray-500 dark:text-gray-400">
@@ -1108,6 +1201,17 @@ const VehicleDetails = () => {
                             </span>
                             <span className="font-semibold">
                               ${Number(log.cost).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+
+                        {log.gas_gallons && (
+                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
+                            <span className="block text-gray-500 dark:text-gray-400">
+                              Gallons
+                            </span>
+                            <span className="font-semibold">
+                              {Number(log.gas_gallons).toFixed(2)}
                             </span>
                           </div>
                         )}
@@ -1166,7 +1270,7 @@ const VehicleDetails = () => {
                         {log.notes && (
                           <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 col-span-2">
                             <span className="block text-gray-500 dark:text-gray-400">
-                              Tools Used
+                              Notes
                             </span>
                             <span className="font-semibold">{log.notes}</span>
                           </div>
