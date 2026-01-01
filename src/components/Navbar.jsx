@@ -62,13 +62,13 @@ const Navbar = () => {
       {/* ===================== */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a1120] dark:bg-gray-900 border-t border-gray-700">
         <div className="flex justify-around items-center h-16 text-white">
-          <Link to="/" className="flex flex-col items-center text-xs">
+          <Link to="/garage" className="flex flex-col items-center text-xs">
             {isActive('/') ? (
               <HomeSolid className="h-6 w-6" />
             ) : (
               <HomeIcon className="h-6 w-6 opacity-70" />
             )}
-            Home
+            Garage
           </Link>
 
           <Link to="/explore" className="flex flex-col items-center text-xs">
