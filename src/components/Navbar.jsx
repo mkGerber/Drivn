@@ -35,6 +35,9 @@ const Navbar = () => {
           <Link to="/explore" className="navigation-button">
             Explore
           </Link>
+          <Link to="/marketplace" className="navigation-button">
+            Marketplace
+          </Link>
 
           {session ? (
             <>
