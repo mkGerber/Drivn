@@ -129,6 +129,12 @@ const Garage = () => {
                       View vehicle →
                     </span>
                   </div>
+
+                  {car.for_sale && (
+                    <span className="absolute top-4 right-4 bg-green-700 text-white text-sm px-3 py-1 rounded-full">
+                      $ LISTED FOR SALE $
+                    </span>
+                  )}
                 </div>
 
                 {/* Info */}

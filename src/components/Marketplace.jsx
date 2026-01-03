@@ -89,32 +89,63 @@ const Marketplace = () => {
      Filters + Sort
   ================================= */
   useEffect(() => {
+    if (!session) return;
+
     let result = [...vehicles];
 
-    // Search
+    // Helper to normalize transmission values
+    const normalizeTransmission = (value = '') => {
+      const v = value.toLowerCase();
+
+      if (
+        v.includes('auto') ||
+        v.includes('automatic') ||
+        v.includes('at') ||
+        v.includes('cvt') ||
+        v.includes('dct')
+      ) {
+        return 'automatic';
+      }
+
+      if (
+        v.includes('manual') ||
+        v.includes('mt') ||
+        v.includes('stick') ||
+        v.includes('speed')
+      ) {
+        return 'manual';
+      }
+
+      return 'other';
+    };
+
+    // Search (make + model)
     if (search) {
+      const s = search.toLowerCase();
       result = result.filter(car =>
-        `${car.make} ${car.model}`
-          .toLowerCase()
-          .includes(search.toLowerCase())
+        `${car.make} ${car.model}`.toLowerCase().includes(s)
       );
     }
 
-    // Transmission
+    // Transmission filter (fuzzy)
     if (transmissionFilter !== 'all') {
-      result = result.filter(
-        car => car.transmission === transmissionFilter
+      result = result.filter(car =>
+        normalizeTransmission(car.transmission) === transmissionFilter
       );
     }
 
     // Sort
     switch (sortBy) {
       case 'mileage-low':
-        result.sort((a, b) => a.current_mileage - b.current_mileage);
+        result.sort(
+          (a, b) => (a.current_mileage ?? 0) - (b.current_mileage ?? 0)
+        );
         break;
+
       case 'year-new':
-        result.sort((a, b) => b.year - a.year);
+        result.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
         break;
+
       default:
         result.sort(
           (a, b) => new Date(b.created_at) - new Date(a.created_at)
@@ -122,7 +153,7 @@ const Marketplace = () => {
     }
 
     setFilteredVehicles(result);
-  }, [vehicles, search, transmissionFilter, sortBy]);
+  }, [vehicles, search, sortBy, transmissionFilter, session]);
 
   /* ================================
      Render

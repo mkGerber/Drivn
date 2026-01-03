@@ -26,9 +26,11 @@ const VehicleDetails = () => {
   }
 
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [vehicle, setVehicle] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [ownerProfile, setOwnerProfile] = useState(null);
 
   const [uploading, setUploading] = useState(false);
   const [logUploading, setLogUploading] = useState(false);
@@ -73,6 +75,11 @@ const VehicleDetails = () => {
   const [editedLogGallons, setEditedLogGallons] = useState(null);
 
   const [editUploading, setEditUploading] = useState(false)
+
+  // Sell vehicle
+  const [showSellForm, setShowSellForm] = useState(false);
+  const [askingPrice, setAskingPrice] = useState("");
+  const [sellingVehicle, setSellingVehicle] = useState(false);
 
 
   
@@ -182,6 +189,18 @@ const VehicleDetails = () => {
         .single();
 
       setVehicle(data);
+      
+      // Fetch owner profile
+      if (data?.user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url, bio')
+          .eq('id', data.user_id)
+          .single();
+        
+        setOwnerProfile(profile);
+      }
+      
       setLoading(false);
     };
 
@@ -348,6 +367,66 @@ const VehicleDetails = () => {
       setAddGasVisible(false);
     }
 
+    /* ------------------ SELL VEHICLE ------------------ */
+    const sellVehicle = async (e) => {
+      e.preventDefault();
+      if (!askingPrice || parseFloat(askingPrice) <= 0) {
+        alert('Please enter a valid asking price');
+        return;
+      }
+
+      setSellingVehicle(true);
+      try {
+        const { error } = await supabase
+          .from('cars')
+          .update({
+            for_sale: true,
+            asking_price: parseFloat(askingPrice)
+          })
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error updating vehicle for sale:', error);
+          alert('Failed to list vehicle for sale. Please try again.');
+        } else {
+          alert('Vehicle listed for sale successfully!');
+          setShowSellForm(false);
+          setAskingPrice("");
+          // Refresh vehicle data
+          const { data } = await supabase
+            .from('cars')
+            .select('*')
+            .eq('id', id)
+            .single();
+          setVehicle(data);
+        }
+      } catch (err) {
+        console.error('Error in sellVehicle:', err);
+        alert('Failed to list vehicle for sale. Please try again.');
+      } finally {
+        setSellingVehicle(false);
+      }
+    };
+
+    const removeCarFromMarket = async (e) => {
+
+      const { data, error } = await supabase
+        .from('cars')
+        .update({
+          'for_sale': false,
+          'asking_price': null
+        })
+        .eq('id', id)
+
+      if (error) {
+        console.error("There was an error removing your car from the marketplace: ", error)
+      } else {
+        console.log("Car was removed from marketplace successfully!")
+      }
+
+      setShowSellForm(false);
+    }
+
     /* ------------------ DELETE VEHICLE ------------------ */
     const deleteVehicle = async () => {
       const confirmed = window.confirm(
@@ -451,21 +530,155 @@ const VehicleDetails = () => {
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Title */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold">
-              {vehicle.year} {vehicle.make} {vehicle.model}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">{vehicle.trim}</p>
+        {/* Sell Vehicle Modal */}
+        {showSellForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-black dark:text-white">
+                  List Vehicle for Sale
+                </h2>
+                
+              </div>
+
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Enter your asking price to list this vehicle for sale.
+              </p>
+
+              <form onSubmit={sellVehicle} className="space-y-4">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Asking Price ($) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={askingPrice}
+                    onChange={(e) => setAskingPrice(e.target.value)}
+                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
+                              border border-gray-300 dark:border-gray-600 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-green-500
+                              invalid:border-red-500 invalid:ring-red-500"
+                  />
+                </div>
+
+                {vehicle?.for_sale && vehicle?.asking_price && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      Current asking price: <span className="font-semibold">${Number(vehicle.asking_price).toFixed(2)}</span>
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSellForm(false);
+                      setAskingPrice("");
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sellingVehicle}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sellingVehicle ? 'Listing...' : vehicle?.for_sale ? 'Update Price' : 'List for Sale'}
+                  </button>
+                </div>
+                
+                
+              </form>
+              {vehicle.for_sale && (
+                <button className="bg-red-500 w-full mt-4" 
+                onClick={() => removeCarFromMarket()}
+                >
+                  Remove from market
+                </button>
+              )}
+              
+            </div>
           </div>
-          {canEdit && (
-            <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition flex-shrink-0 mt-5" onClick={deleteVehicle}>
-              Delete Vehicle
+        )}
+
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+
+        {/* Left: Vehicle + Owner */}
+        <div className="flex flex-col">
+          <h1 className="text-3xl font-bold">
+            {vehicle.year} {vehicle.make} {vehicle.model}
+          </h1>
+
+          {vehicle.trim && (
+            <p className="text-gray-600 dark:text-gray-400">
+              {vehicle.trim}
+            </p>
+          )}
+
+          {/* Owner */}
+          {ownerProfile && (
+            <button
+              onClick={() => navigate(`/user/${ownerProfile.id}`)}
+              className="flex items-center gap-3 mt-4 group"
+            >
+              {ownerProfile.avatar_url ? (
+                <img
+                  src={ownerProfile.avatar_url}
+                  alt={ownerProfile.username || 'User'}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                  <svg
+                    className="w-5 h-5 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+              )}
+
+              <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                @{ownerProfile.username || 'user'}
+              </span>
             </button>
           )}
-          
         </div>
+
+        {/* Right: Actions */}
+        {canEdit && (
+          <div className="flex gap-3 self-start">
+            <button
+              onClick={() => setShowSellForm(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
+            >
+              {vehicle?.for_sale ? 'Update Price' : 'Sell Vehicle'}
+            </button>
+
+            <button
+              onClick={deleteVehicle}
+              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition"
+            >
+              Delete
+            </button>
+          </div>
+        )}
+        </div>
+
 
         {/* MAIN LAYOUT: Content + Sidebar */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -603,7 +816,7 @@ const VehicleDetails = () => {
               </button>
 
               <button
-                onClick={() => {setAddLogVisible(!addLogVisible); setGasLogVisible(false)}}
+                onClick={() => {setAddLogVisible(!addLogVisible); setAddGasVisible(false)}}
                 className="bg-gray-800 dark:bg-gray-700 text-white dark:text-white hover:bg-gray-700 dark:hover:bg-gray-600 rounded px-4 py-2 text-base sm:px-3 sm:py-1 sm:text-sm"
               >
                 {addLogVisible ? 'Cancel' : 'Add Log'}
@@ -1530,6 +1743,8 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
   const [showNewQuestion, setShowNewQuestion] = useState(false);
   const [newAnswers, setNewAnswers] = useState({});
 
+
+
   // Fetch questions from Supabase
   const fetchQuestions = async () => {
     setLoading(true);
@@ -1615,6 +1830,7 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
         const questionAnswers = allAnswers[post.id] || [];
         return {
           id: post.id,
+          user_id: post.user_id,
           author: post.profiles?.username || 'Unknown',
           question: post.title || post.body,
           answers: questionAnswers,
@@ -1768,6 +1984,30 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
       console.error('Error accepting answer:', err);
     }
   };
+  
+
+  const handleRemoveQuestion = async (question_id) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this question?"
+    );
+
+    if (!confirmed) return;
+
+    console.log(question_id)
+
+    const {data, error} = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', question_id);
+
+    if (error) {
+      console.error("Error deleting question: ", error)
+    } else {
+      console.log("Question deleted successfully!")
+    }
+
+    fetchQuestions();
+  }
 
   return (
     <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow-lg">
@@ -1817,9 +2057,14 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
           questions.map((q) => (
           <div
             key={q.id}
-            className="bg-white dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition"
-          >
+            className="bg-white dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition relative"
+          > 
+            {(isOwner || q.user_id == session.user.id) && (
+              <TrashIcon className="absolute bottom-4 right-4 h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" onClick={(e) => handleRemoveQuestion(q.id)}/>
+            )}
+            
             <div className="flex items-start gap-3 mb-3">
+              
               <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                 q.isAnswered
                   ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
@@ -1901,6 +2146,8 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
                 </button>
               </form>
             </div>
+            
+            
           </div>
           ))
         )}

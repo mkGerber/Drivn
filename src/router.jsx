@@ -10,6 +10,7 @@ import AddVehicle from "./components/AddVehicle";
 import VehicleDetails from "./components/VehicleDetails";
 import DiscussionDetail from "./components/DiscussionDetail";
 import Marketplace from "./components/Marketplace";
+import UserProfile from "./components/UserProfile";
 
 export const router = createBrowserRouter([
     {path: "/", element: <App/>},
@@ -22,5 +23,6 @@ export const router = createBrowserRouter([
     {path: "/addvehicle", element:<AddVehicle/>},
     {path: "/vehicle/:id", element:<VehicleDetails/>},
     {path: "/discussion/:id", element:<DiscussionDetail/>},
-    {path: "/marketplace", element: <Marketplace/>}
+    {path: "/marketplace", element: <Marketplace/>},
+    {path: "/user/:userId", element: <UserProfile/>}
 ]);
