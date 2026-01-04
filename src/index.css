@@ -19,16 +19,20 @@ html, body {
 
 /* ---------- Theme variables ---------- */
 :root {
-  --bg-color: #ffffff;
-  --text-color: #0f172a;
+  --bg-color: #0a1120;
+  --text-color: rgba(255, 255, 255, 0.87);
 }
 
 .dark {
-  --bg-color: #080d18;
+  --bg-color: #0a1120;
   --text-color: rgba(255, 255, 255, 0.87);
 }
 
 /* ---------- Base app styles ---------- */
+html {
+  background-color: #0a1120;
+}
+
 body {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -36,6 +40,8 @@ body {
 
   background-color: var(--bg-color);
   color: var(--text-color);
+  margin: 0;
+  padding: 0;
 }
 
 /* ---------- Links ---------- */

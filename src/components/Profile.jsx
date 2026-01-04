@@ -193,10 +193,10 @@ const Profile = () => {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white -mt-0">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="max-w-4xl mx-auto px-6 py-6 md:py-12">
         {/* Hero Header */}
         <div
           className={`mb-8 transform transition-all duration-1000 ${
