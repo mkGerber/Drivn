@@ -13,16 +13,16 @@ const VehicleDetails = () => {
 
   const handleEdit = (log) => {
     setEditingLogId(log.id);
-    setEditedLogTitle(log.title);
-    setEditedLogDescription(log.description);
-    setEditedLogCost(log.cost);
-    setEditedLogDate(log.date);
-    setEditedLogMileage(log.mileage);
-    setEditedLogToolsUsed(log.tools_used);
-    setEditedLogLaborHours(log.labor_hours);
-    setEditedLogPerformer(log.performed_by);
-    setEditedLogNotes(log.notes);
-    setEditedLogGallons(log.Gallons);
+    setEditedLogTitle(log.title || '');
+    setEditedLogDescription(log.description || '');
+    setEditedLogCost(log.cost || '');
+    setEditedLogDate(log.date || '');
+    setEditedLogMileage(log.mileage || '');
+    setEditedLogToolsUsed(log.tools_used || '');
+    setEditedLogLaborHours(log.labor_hours || '');
+    setEditedLogPerformer(log.performed_by || '');
+    setEditedLogNotes(log.notes || '');
+    setEditedLogGallons(log.gas_gallons || '');
   }
 
   const { id } = useParams();
@@ -48,6 +48,7 @@ const VehicleDetails = () => {
   //Log form
   const [addLogVisible, setAddLogVisible] = useState(false);
   const [addGasVisible, setAddGasVisible] = useState(false);
+  const [hideGasLogs, setHideGasLogs] = useState(false);
 
   const [logTitle, setLogTitle] = useState(null);
   const [logDescription, setLogDescription] = useState("");
@@ -90,26 +91,33 @@ const VehicleDetails = () => {
   const submitLogEdit = async () => {
     setEditUploading(true);
 
+    // Helper function to convert empty strings to null for numeric fields
+    const toNumberOrNull = (value) => {
+      if (value === '' || value === null || value === undefined) return null;
+      const num = parseFloat(value);
+      return isNaN(num) ? null : num;
+    };
 
     const { data, error } = await supabase
       .from('vehicle_logs')
       .update({
-        title: editedLogTitle,
-        description: editedLogDescription,
-        cost: editedLogCost,
-        date: editedLogDate,
-        mileage: editedLogMileage,
-        tools_used: editedLogToolsUsed,
-        labor_hours: editedLogLaborHours,
-        performed_by: editedLogPerformer,
-        notes: editedLogNotes,
-        gas_gallons: editedLogGallons
+        title: editedLogTitle || null,
+        description: editedLogDescription || null,
+        cost: toNumberOrNull(editedLogCost),
+        date: editedLogDate || null,
+        mileage: toNumberOrNull(editedLogMileage),
+        tools_used: editedLogToolsUsed || null,
+        labor_hours: toNumberOrNull(editedLogLaborHours),
+        performed_by: editedLogPerformer || null,
+        notes: editedLogNotes || null,
+        gas_gallons: toNumberOrNull(editedLogGallons)
       })
       .eq('id', editingLogId)
       .single();
 
       if (error) {
         console.error("Error updating maintenance log:", error);
+        alert('Failed to update log. Please check your input and try again.');
       } else {
         console.log("Maintenance log updated successfully:", data);
         getLogs();
@@ -804,8 +812,29 @@ const VehicleDetails = () => {
         )}
 
         {/* Top of maintenance log section */}
-        <div className="flex items-center justify-between mt-12 mb-4">
-          <h2 className="text-2xl font-bold">Maintenance Logs</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-12 mb-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold">Maintenance Logs</h2>
+            {/* Toggle to hide gas logs */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hideGasLogs}
+                onChange={(e) => setHideGasLogs(e.target.checked)}
+                className="sr-only"
+              />
+              <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                hideGasLogs ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+              }`}>
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
+                  hideGasLogs ? 'translate-x-5' : 'translate-x-0'
+                }`}></div>
+              </div>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Hide Gas Logs
+              </span>
+            </label>
+          </div>
           {canEdit && (
             <div>
               <button
@@ -1133,239 +1162,291 @@ const VehicleDetails = () => {
         {/* Maintenance Logs */}
         <div className="mt-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
-            
-            {/* Total Logs */}
-            <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                # of Logs
-              </p>
-              <h1 className="text-3xl font-bold text-black dark:text-white">
-                {totalLogs}
-              </h1>
-            </div>
+            {(() => {
+              // Calculate filtered totals based on hideGasLogs toggle
+              const filteredLogs = hideGasLogs 
+                ? maintenanceLogs.filter(log => !log.gas)
+                : maintenanceLogs;
+              
+              const filteredTotalPrice = filteredLogs.reduce(
+                (sum, log) => sum + (Number(log.cost) || 0), 0
+              );
+              
+              const filteredTotalHours = filteredLogs.reduce(
+                (sum, log) => sum + (Number(log.labor_hours) || 0), 0
+              );
+              
+              const filteredTotalLogs = filteredLogs.length;
+              
+              return (
+                <>
+                  {/* Total Logs */}
+                  <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                      # of Logs
+                    </p>
+                    <h1 className="text-3xl font-bold text-black dark:text-white">
+                      {filteredTotalLogs}
+                    </h1>
+                  </div>
 
-            {/* Total Spent */}
-            <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                Total Spent
-              </p>
-              <h1 className="text-3xl font-bold text-green-500">
-                ${totalPrice.toFixed(2)}
-              </h1>
-            </div>
+                  {/* Total Spent */}
+                  <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                      Total Spent
+                    </p>
+                    <h1 className="text-3xl font-bold text-green-500">
+                      ${filteredTotalPrice.toFixed(2)}
+                    </h1>
+                  </div>
 
-            {/* Hours Spent */}
-            <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                Hours Spent
-              </p>
-              <h1 className="text-3xl font-bold text-blue-500">
-                {totalHours}
-              </h1>
-            </div>
-
+                  {/* Hours Spent */}
+                  <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                      Hours Spent
+                    </p>
+                    <h1 className="text-3xl font-bold text-blue-500">
+                      {filteredTotalHours}
+                    </h1>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         
 
-          {maintenanceLogs.length === 0 ? (
-            <p className="text-gray-600 dark:text-gray-400">
-              {canEdit ? 'No maintenance logs yet. Start by adding one above 👨‍🔧' 
-              : 'No maintenance logs yet🔧'}
-            </p>
-          ) : (
-            <div className="relative border-l-2 border-gray-300 dark:border-gray-700 ml-3 space-y-6">
-              {maintenanceLogs.map((log) => (
+          {(() => {
+            const filteredLogs = hideGasLogs 
+              ? maintenanceLogs.filter(log => !log.gas)
+              : maintenanceLogs;
+            
+            return filteredLogs.length === 0 ? (
+              <p className="text-gray-600 dark:text-gray-400">
+                {hideGasLogs 
+                  ? 'No maintenance logs (gas logs hidden). Start by adding one above 👨‍🔧'
+                  : canEdit 
+                    ? 'No maintenance logs yet. Start by adding one above 👨‍🔧' 
+                    : 'No maintenance logs yet🔧'}
+              </p>
+            ) : (
+              <div className="relative border-l-2 border-gray-300 dark:border-gray-700 ml-3 space-y-6">
+                {filteredLogs.map((log) => (
                 <div key={log.id} className="relative pl-8">
                   {/* Timeline dot */}
                   <span className={`absolute -left-[9px] top-2 h-4 w-4 rounded-full ${log.gas ? 'bg-orange-600' : 'bg-blue-600'}`} />
 
                   {editingLogId === log.id ? (
-                    <div className={`rounded-xl p-5 shadow-lg ${log.gas ? 'bg-orange-500 dark:bg-yellow-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      {/*Edit Title*/}
-                      <input className="text-lg font-semibold" 
-                      value={editedLogTitle} 
-                      type="Text"
-                      onChange={(e) => setEditedLogTitle(e.target.value)}
-                      />
-                      <div>
-                        {editingLogId === log.id && canEdit &&  (
-                          <div>
-                            <CheckIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block mr-2 cursor-pointer hover:text-green-500" onClick={(e) => submitLogEdit()}/>
-                            <XCircleIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" onClick={(e) => setEditingLogId(null)}/>
-                          </div>
-                        )}
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          {log.date}
-                        </span>
+                    <div className={`rounded-xl p-6 shadow-lg border-2 border-blue-400 dark:border-blue-600 ${log.gas ? 'bg-orange-50 dark:bg-yellow-900/30' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                      {/* Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                            Title
+                          </label>
+                          <input 
+                            className="w-full text-lg font-semibold bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                            value={editedLogTitle || ''} 
+                            type="text"
+                            onChange={(e) => setEditedLogTitle(e.target.value)}
+                            placeholder="Log title"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          {editingLogId === log.id && canEdit && (
+                            <>
+                              <button
+                                onClick={submitLogEdit}
+                                className="p-2 rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors"
+                                title="Save"
+                                disabled={editUploading}
+                              >
+                                <CheckIcon className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => setEditingLogId(null)}
+                                className="p-2 rounded-lg bg-gray-400 hover:bg-gray-500 text-white transition-colors"
+                                title="Cancel"
+                              >
+                                <XCircleIcon className="h-5 w-5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      
-                    </div>
 
-                    {/* Edit Description - Only show if not gas log */}
-                      {!log.gas && log.description && (
-                        <textarea
-                          value={editedLogDescription}
-                          onChange={(e) => setEditedLogDescription(e.target.value)}
-                          className="w-full mt-2 p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          rows={3}
+                      {/* Date */}
+                      <div className="mb-4">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                          Date
+                        </label>
+                        <input
+                          type="date"
+                          value={editedLogDate || ''}
+                          onChange={(e) => setEditedLogDate(e.target.value)}
+                          className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
+                      </div>
+
+                      {/* Edit Description - Only show if not gas log */}
+                      {!log.gas && (
+                        <div className="mb-4">
+                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                            Description
+                          </label>
+                          <textarea
+                            value={editedLogDescription || ''}
+                            onChange={(e) => setEditedLogDescription(e.target.value)}
+                            className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            rows={3}
+                            placeholder="What was done?"
+                          />
+                        </div>
                       )}
 
-
-                    {/* Edit Metadata */}
-                    {log.gas ? (
-                      /* Gas log - only mileage and cost */
-                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                        {log.mileage && (
-                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
-                            <span className="block text-gray-500 dark:text-gray-400">
+                      {/* Edit Metadata */}
+                      {log.gas ? (
+                        /* Gas log - always show all 3 fields */
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                               Mileage
-                            </span>
-                            <input 
-                              className="font-semibold"
-                              type="text"
-                              value={editedLogMileage}
-                              onChange={(e) => setEditedLogMileage(e.target.value)}
-                            />
-                            <span className="font-semibold">
-                               mi
-                            </span>
+                            </label>
+                            <div className="flex items-center gap-1">
+                              <input 
+                                className="flex-1 font-semibold bg-transparent border-none focus:outline-none text-gray-900 dark:text-white"
+                                type="number"
+                                value={editedLogMileage || ''}
+                                onChange={(e) => setEditedLogMileage(e.target.value)}
+                                placeholder="0"
+                              />
+                              <span className="text-sm text-gray-500 dark:text-gray-400">mi</span>
+                            </div>
                           </div>
-                        )}
 
-                        {log.cost && (
-                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
-                            <span className="block text-gray-500 dark:text-gray-400">
+                          <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                               Cost
-                            </span>
-                            <span className="font-semibold">
-                              $
-                            </span>
-                            <input 
-                              className="font-semibold"
-                              type="text"
-                              value={editedLogCost}
-                              onChange={(e) => setEditedLogCost(e.target.value)}
-                            />
+                            </label>
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm text-gray-500 dark:text-gray-400">$</span>
+                              <input 
+                                className="flex-1 font-semibold bg-transparent border-none focus:outline-none text-gray-900 dark:text-white"
+                                type="number"
+                                step="0.01"
+                                value={editedLogCost || ''}
+                                onChange={(e) => setEditedLogCost(e.target.value)}
+                                placeholder="0.00"
+                              />
+                            </div>
                           </div>
-                        )}
 
-                        {log.gas_gallons && (
-                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
-                            <span className="block text-gray-500 dark:text-gray-400">
+                          <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                               Gallons
-                            </span>
-                            <span className="font-semibold">
-                              $
-                            </span>
+                            </label>
                             <input 
-                              className="font-semibold"
-                              type="text"
-                              value={editedLogGallons}
+                              className="w-full font-semibold bg-transparent border-none focus:outline-none text-gray-900 dark:text-white"
+                              type="number"
+                              step="0.01"
+                              value={editedLogGallons || ''}
                               onChange={(e) => setEditedLogGallons(e.target.value)}
+                              placeholder="0.00"
                             />
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      /* Regular log - all fields */
-                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                        {log.mileage && (
-                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
-                            <span className="block text-gray-500 dark:text-gray-400">
-                              Mileage
-                            </span>
-                            <input 
-                              className="font-semibold"
-                              type="text"
-                              value={editedLogMileage}
-                              onChange={(e) => setEditedLogMileage(e.target.value)}
-                            />
-                            <span className="font-semibold">
-                               mi
-                            </span>
-                          </div>
-                        )}
+                        </div>
+                      ) : (
+                        /* Regular log - always show all fields */
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                Mileage
+                              </label>
+                              <div className="flex items-center gap-1">
+                                <input 
+                                  className="flex-1 font-semibold bg-transparent border-none focus:outline-none text-gray-900 dark:text-white"
+                                  type="number"
+                                  value={editedLogMileage || ''}
+                                  onChange={(e) => setEditedLogMileage(e.target.value)}
+                                  placeholder="0"
+                                />
+                                <span className="text-sm text-gray-500 dark:text-gray-400">mi</span>
+                              </div>
+                            </div>
 
-                        {log.cost && (
-                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2">
-                            <span className="block text-gray-500 dark:text-gray-400">
-                              Cost
-                            </span>
-                            <span className="font-semibold">
-                              $
-                            </span>
-                            <input 
-                              className="font-semibold"
-                              type="text"
-                              step="any"
-                              value={editedLogCost}
-                              onChange={(e) => setEditedLogCost(e.target.value)}
-                            />
-                          </div>
-                        )}
+                            <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                Cost
+                              </label>
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">$</span>
+                                <input 
+                                  className="flex-1 font-semibold bg-transparent border-none focus:outline-none text-gray-900 dark:text-white"
+                                  type="number"
+                                  step="0.01"
+                                  value={editedLogCost || ''}
+                                  onChange={(e) => setEditedLogCost(e.target.value)}
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </div>
 
-                        {log.tools_used && (
-                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 col-span-2">
-                            <span className="block text-gray-500 dark:text-gray-400">
+                            <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                Labor Hours
+                              </label>
+                              <input 
+                                className="w-full font-semibold bg-transparent border-none focus:outline-none text-gray-900 dark:text-white"
+                                type="number"
+                                step="0.1"
+                                value={editedLogLaborHours || ''}
+                                onChange={(e) => setEditedLogLaborHours(e.target.value)}
+                                placeholder="0"
+                              />
+                            </div>
+
+                            <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                Performed By
+                              </label>
+                              <input 
+                                className="w-full font-semibold bg-transparent border-none focus:outline-none text-gray-900 dark:text-white"
+                                type="text"
+                                value={editedLogPerformer || ''}
+                                onChange={(e) => setEditedLogPerformer(e.target.value)}
+                                placeholder="Optional"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                               Tools Used
-                            </span>
+                            </label>
                             <input 
-                              className="font-semibold"
+                              className="w-full font-semibold bg-transparent border-none focus:outline-none text-gray-900 dark:text-white"
                               type="text"
-                              value={editedLogToolsUsed}
+                              value={editedLogToolsUsed || ''}
                               onChange={(e) => setEditedLogToolsUsed(e.target.value)}
-                            />
-                            
-                          </div>
-                        )}
-
-                        {log.labor_hours && (
-                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 ">
-                            <span className="block text-gray-500 dark:text-gray-400">
-                              Labor Hours
-                            </span>
-                            <input 
-                              className="font-semibold"
-                              type="text"
-                              value={editedLogLaborHours}
-                              onChange={(e) => setEditedLogLaborHours(e.target.value)}
+                              placeholder="Optional"
                             />
                           </div>
-                        )}
 
-                        {log.performed_by && (
-                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 ">
-                            <span className="block text-gray-500 dark:text-gray-400">
-                              Performed by
-                            </span>
-                            <input 
-                              className="font-semibold"
-                              type="text"
-                              value={editedLogPerformer}
-                              onChange={(e) => setEditedLogPerformer(e.target.value)}
-                            />
-                          </div>
-                        )}
-
-                        {log.notes && (
-                          <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-2 col-span-2">
-                            <span className="block text-gray-500 dark:text-gray-400">
+                          <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                               Notes
-                            </span>
-                            <input 
-                              className="font-semibold"
-                              type="text"
-                              value={editedLogNotes}
+                            </label>
+                            <textarea
+                              className="w-full font-semibold bg-transparent border-none focus:outline-none text-gray-900 dark:text-white resize-none"
+                              rows={2}
+                              value={editedLogNotes || ''}
                               onChange={(e) => setEditedLogNotes(e.target.value)}
+                              placeholder="Optional notes"
                             />
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className={`rounded-xl p-5 shadow-lg ${log.gas ? 'bg-orange-300 dark:bg-yellow-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
                     {/* Header */}
@@ -1373,11 +1454,25 @@ const VehicleDetails = () => {
                       <h3 className="text-lg font-semibold">{log.title}</h3>
                       <div>
                         {canEdit && (
-                          <div>
-                            <PencilSquareIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block mr-2 cursor-pointer hover:text-blue-500" onClick={(e) => handleEdit(log)}/>
-                            <TrashIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" onClick={(e) => handleRemoveLog(log.id)}/>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleEdit(log)}
+                              className="p-2 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900 transition"
+                              title="Edit"
+                            >
+                              <PencilSquareIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 hover:text-blue-500" />
+                            </button>
+
+                            <button
+                              onClick={() => handleRemoveLog(log.id)}
+                              className="p-2 rounded-md hover:bg-red-200 dark:hover:bg-red-900 transition"
+                              title="Delete"
+                            >
+                              <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-600" />
+                            </button>
                           </div>
                         )}
+
                         <span className="text-sm text-gray-500 dark:text-gray-400">
                           {log.date}
                         </span>
@@ -1496,7 +1591,8 @@ const VehicleDetails = () => {
                 </div>
               ))}
             </div>
-          )}
+            );
+          })()}
         </div>
           </div>
 
