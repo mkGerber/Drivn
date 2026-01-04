@@ -164,7 +164,7 @@ const Explore = () => {
 
       {/* Hero Header */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(228,90,65,0.1),transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_50%)]"></div>
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-6 md:py-12">
           <div
             className={`transform transition-all duration-1000 ${
@@ -172,7 +172,7 @@ const Explore = () => {
             }`}
           >
             <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-4">
-              Explore <span className="bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">Builds</span>
+              Explore <span className="bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">Builds</span>
             </h1>
             <p className="text-xl text-gray-400 mb-8">
               Discover amazing vehicles from the community
