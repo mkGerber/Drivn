@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import Navbar from './Navbar';
 import supabase from '../supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
+import { PencilIcon, CameraIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 const Profile = () => {
   const { session, signOut } = UserAuth();
-  const { darkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
+  const [isVisible, setIsVisible] = useState(false);
   const [ suggestions, setSuggestions ] = useState("");
   console.log(suggestions);
 
@@ -24,6 +24,9 @@ const Profile = () => {
 
   const [isEditing, setIsEditing] = useState(false);
 
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -190,13 +193,28 @@ const Profile = () => {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-black text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white">
       <Navbar />
 
-      <div className="max-w-3xl mx-auto px-4 mt-10">
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        {/* Hero Header */}
+        <div
+          className={`mb-8 transform transition-all duration-1000 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}
+        >
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2">
+            <span className="bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">Profile</span>
+          </h1>
+          <p className="text-gray-400 text-lg">Manage your account and preferences</p>
+        </div>
 
         {/* Profile Header */}
-        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-6">
+        <div
+          className={`bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8 mb-6 transform transition-all duration-1000 delay-200 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}
+        >
           {/* Hidden file input */}
           <input
             ref={fileInputRef}
@@ -206,10 +224,10 @@ const Profile = () => {
             className="hidden"
           />
           
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
             {/* Avatar - Clickable */}
             <div 
-              className="w-24 h-24 flex-shrink-0 rounded-full bg-gray-300 dark:bg-neutral-700 overflow-hidden cursor-pointer relative group z-10"
+              className="w-32 h-32 flex-shrink-0 rounded-full bg-gray-700 overflow-hidden cursor-pointer relative group z-10 border-4 border-gray-700 hover:border-red-500 transition-all"
               onClick={() => fileInputRef.current?.click()}
               title="Click to change profile photo"
             >
@@ -220,49 +238,53 @@ const Profile = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
-                  <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
               )}
               {/* Overlay on hover only */}
-              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-30 transition-opacity flex items-center justify-center pointer-events-none">
-                <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                <CameraIcon className="w-8 h-8 text-white" />
               </div>
               {uploading && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
-                  <div className="text-white text-sm">Uploading...</div>
+                <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-20">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-red-500 border-t-transparent mb-2"></div>
+                    <div className="text-white text-sm">Uploading...</div>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Info */}
             <div className="flex-1 w-full text-center sm:text-left">
-              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4">
-                <h1 className="text-xl font-semibold">
-                  @{profile.username || 'username'}
-                </h1>
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-white mb-1">
+                    @{profile.username || 'username'}
+                  </h1>
+                  <p className="text-gray-400">
+                    {session.user.email}
+                  </p>
+                </div>
 
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-1.5 text-sm border border-gray-700 dark:border-neutral-700 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800 dark:bg-gray-800 bg-gray-300"
+                  className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl hover:opacity-90 transition font-semibold shadow-lg shadow-red-500/50 flex items-center gap-2"
                 >
-                  Edit profile
+                  <PencilIcon className="w-5 h-5" />
+                  Edit Profile
                 </button>
               </div>
 
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {session.user.email}
-              </p>
-
-              {profile.bio && (
-                <p className="mt-3 text-sm max-w-md mx-auto sm:mx-0">
+              {profile.bio ? (
+                <p className="text-gray-300 text-base max-w-md mx-auto sm:mx-0 bg-gray-900/50 rounded-lg p-4 border border-gray-700/50">
                   {profile.bio}
                 </p>
+              ) : (
+                <p className="text-gray-500 text-sm italic">No bio yet. Add one in your profile settings!</p>
               )}
             </div>
           </div>
@@ -270,8 +292,8 @@ const Profile = () => {
 
         {/* Edit Profile */}
         {isEditing && (
-          <div className="mt-6 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">Edit profile</h2>
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8 mb-6">
+            <h2 className="text-2xl font-bold text-white mb-6">Edit Profile</h2>
 
             <form
               onSubmit={(e) => {
@@ -279,57 +301,59 @@ const Profile = () => {
                 saveProfile(e);
                 setIsEditing(false);
               }}
-              className="space-y-4"
+              className="space-y-6"
             >
               <div>
-                <label className="block text-sm mb-1">Username</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
                 <input
                   type="text"
                   value={profile.username || ''}
                   onChange={(e) =>
                     setProfile({ ...profile, username: e.target.value })
                   }
-                  className="w-full p-2 border border-gray-300 dark:border-neutral-700 rounded-md bg-transparent"
+                  className="w-full p-3 border border-gray-700 rounded-lg bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
+                  placeholder="Enter username"
                 />
               </div>
 
               <div>
-                <label className="block text-sm mb-1">Upload Profile Photo</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Upload Profile Photo</label>
                 <input
                   type="file"
                   onChange={uploadImage}
-                  className="block w-full text-sm text-gray-700 dark:text-gray-300
+                  className="block w-full text-sm text-gray-300
                     file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:bg-gray-700 dark:file:bg-gray-600 file:text-white
-                    hover:file:bg-gray-600 dark:hover:file:bg-gray-500"
+                    file:rounded-lg file:border-0
+                    file:bg-gray-700 file:text-white
+                    hover:file:bg-gray-600 cursor-pointer"
                 />
               </div>
 
               <div>
-                <label className="block text-sm mb-1">Bio</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
                 <textarea
-                  rows="3"
+                  rows="4"
                   value={profile.bio || ''}
                   onChange={(e) =>
                     setProfile({ ...profile, bio: e.target.value })
                   }
-                  className="w-full p-2 border border-gray-300 dark:border-neutral-700 rounded-md bg-transparent resize-none"
+                  className="w-full p-3 border border-gray-700 rounded-lg bg-gray-900 text-white resize-none focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
+                  placeholder="Tell us about yourself..."
                 />
               </div>
 
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="px-5 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                  className="px-6 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl hover:opacity-90 transition font-semibold shadow-lg shadow-red-500/50"
                 >
-                  Save
+                  Save Changes
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-5 py-2 text-sm border border-gray-300 dark:border-neutral-700 rounded-md"
+                  className="px-6 py-3 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition font-semibold"
                 >
                   Cancel
                 </button>
@@ -339,39 +363,38 @@ const Profile = () => {
         )}
 
         {/* Settings */}
-        <div className="mt-6 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-6 space-y-3">
-          <button
-            onClick={toggleDarkMode}
-            className="w-full text-left text-sm px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800 bg-gray-300 dark:bg-gray-800"
-          >
-            Switch to {darkMode ? 'Light' : 'Dark'} mode
-          </button>
-
-          <button
-            onClick={handleSignOut}
-            className="w-full text-left text-sm px-3 py-2 rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-neutral-800 bg-red-100"
-          >
-            Sign out
-          </button>
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 mb-6">
+          <h2 className="text-xl font-bold text-white mb-4">Settings</h2>
+          <div className="space-y-3">
+            <button
+              onClick={handleSignOut}
+              className="w-full text-left px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/20 hover:text-red-300 transition border border-red-500/30 hover:border-red-500/50 font-semibold"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
 
         {/* Feedback */}
-        <div className="mt-6 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-3">Feedback</h2>
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8">
+          <h2 className="text-2xl font-bold text-white mb-4">Feedback</h2>
+          <p className="text-gray-400 mb-6">We'd love to hear your suggestions and feedback!</p>
 
-          <form onSubmit={submitFeedback}>
+          <form onSubmit={submitFeedback} className="space-y-4">
             <textarea
-              rows="3"
-              placeholder="Suggestions or feedback…"
+              rows="4"
+              placeholder="Share your thoughts, suggestions, or report any issues..."
+              value={suggestions}
               onChange={(e) => setSuggestions(e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-neutral-700 rounded-md resize-none bg-transparent mb-3"
+              className="w-full p-4 border border-gray-700 rounded-lg resize-none bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
             />
 
             <button
               type="submit"
-              className="px-4 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:opacity-90 transition font-semibold shadow-lg shadow-blue-500/50 flex items-center gap-2"
             >
-              Submit
+              Submit Feedback
+              <ArrowRightIcon className="w-5 h-5" />
             </button>
           </form>
         </div>

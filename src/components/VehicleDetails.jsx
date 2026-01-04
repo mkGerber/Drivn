@@ -4,7 +4,7 @@ import Navbar from './Navbar';
 import { useParams, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { UserAuth } from '../context/AuthContext';
-import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon, ChatBubbleLeftIcon, ArrowUpIcon, ArrowDownIcon, QuestionMarkCircleIcon} from '@heroicons/react/24/outline';
+import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon, ChatBubbleLeftIcon, ArrowUpIcon, ArrowDownIcon, QuestionMarkCircleIcon, ArrowRightIcon} from '@heroicons/react/24/outline';
 import {ArrowUpIcon as ArrowUpSolid, ArrowDownIcon as ArrowDownSolid} from '@heroicons/react/24/solid';
 
 
@@ -49,6 +49,7 @@ const VehicleDetails = () => {
   const [addLogVisible, setAddLogVisible] = useState(false);
   const [addGasVisible, setAddGasVisible] = useState(false);
   const [hideGasLogs, setHideGasLogs] = useState(false);
+  const [logsToShow, setLogsToShow] = useState(10);
 
   const [logTitle, setLogTitle] = useState(null);
   const [logDescription, setLogDescription] = useState("");
@@ -528,34 +529,66 @@ const VehicleDetails = () => {
 
 
 
-  if (loading) return <div className="min-h-screen bg-white dark:bg-gray-900"><Navbar /><p className="p-6 text-black dark:text-white">Loading...</p></div>;
-  if (!vehicle) return <div className="min-h-screen bg-white dark:bg-gray-900"><Navbar /><p className="p-6 text-black dark:text-white">Vehicle not found</p></div>;
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
+
+  if (loading) return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+      <Navbar />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-red-500 border-t-transparent mb-4"></div>
+          <p className="text-gray-400">Loading vehicle...</p>
+        </div>
+      </div>
+    </div>
+  );
+  
+  if (!vehicle) return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+      <Navbar />
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-white text-xl">Vehicle not found</p>
+      </div>
+    </div>
+  );
 
   /* ------------------ RENDER ------------------ */
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white">
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Sell Vehicle Modal */}
         {showSellForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-black dark:text-white">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800/95 backdrop-blur-md rounded-2xl p-8 max-w-md w-full shadow-2xl border border-gray-700">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-white">
                   List Vehicle for Sale
                 </h2>
-                
+                <button
+                  onClick={() => {
+                    setShowSellForm(false);
+                    setAskingPrice("");
+                  }}
+                  className="text-gray-400 hover:text-white transition"
+                >
+                  ✕
+                </button>
               </div>
 
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-sm text-gray-400 mb-6">
                 Enter your asking price to list this vehicle for sale.
               </p>
 
               <form onSubmit={sellVehicle} className="space-y-4">
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Asking Price ($) <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -566,16 +599,16 @@ const VehicleDetails = () => {
                     placeholder="0.00"
                     value={askingPrice}
                     onChange={(e) => setAskingPrice(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
+                    className="w-full p-3 bg-gray-700 text-white
+                              border border-gray-600 rounded-lg
                               focus:outline-none focus:ring-2 focus:ring-green-500
                               invalid:border-red-500 invalid:ring-red-500"
                   />
                 </div>
 
                 {vehicle?.for_sale && vehicle?.asking_price && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3">
+                    <p className="text-sm text-green-300">
                       Current asking price: <span className="font-semibold">${Number(vehicle.asking_price).toFixed(2)}</span>
                     </p>
                   </div>
@@ -588,26 +621,26 @@ const VehicleDetails = () => {
                       setShowSellForm(false);
                       setAskingPrice("");
                     }}
-                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                    className="flex-1 px-4 py-2 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={sellingVehicle}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                   >
                     {sellingVehicle ? 'Listing...' : vehicle?.for_sale ? 'Update Price' : 'List for Sale'}
                   </button>
                 </div>
-                
-                
               </form>
+              
               {vehicle.for_sale && (
-                <button className="bg-red-500 w-full mt-4" 
-                onClick={() => removeCarFromMarket()}
+                <button 
+                  className="w-full mt-4 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg hover:opacity-90 transition font-semibold" 
+                  onClick={() => removeCarFromMarket()}
                 >
-                  Remove from market
+                  Remove from Market
                 </button>
               )}
               
@@ -615,76 +648,92 @@ const VehicleDetails = () => {
           </div>
         )}
 
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+        {/* Hero Header */}
+        <div className={`relative mb-8 transform transition-all duration-1000 ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+        }`}>
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 rounded-2xl blur-xl"></div>
+          <div className="relative bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+              {/* Left: Vehicle + Owner */}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-3 mb-2">
+                  {vehicle.for_sale && (
+                    <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                      FOR SALE
+                    </span>
+                  )}
+                  <span className="text-gray-400 text-sm">{vehicle.year}</span>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-extrabold mb-2">
+                  <span className="bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
+                    {vehicle.make} {vehicle.model}
+                  </span>
+                </h1>
 
-        {/* Left: Vehicle + Owner */}
-        <div className="flex flex-col">
-          <h1 className="text-3xl font-bold">
-            {vehicle.year} {vehicle.make} {vehicle.model}
-          </h1>
+                {vehicle.trim && (
+                  <p className="text-gray-400 text-lg mb-4">
+                    {vehicle.trim}
+                  </p>
+                )}
 
-          {vehicle.trim && (
-            <p className="text-gray-600 dark:text-gray-400">
-              {vehicle.trim}
-            </p>
-          )}
-
-          {/* Owner */}
-          {ownerProfile && (
-            <button
-              onClick={() => navigate(`/user/${ownerProfile.id}`)}
-              className="flex items-center gap-3 mt-4 group"
-            >
-              {ownerProfile.avatar_url ? (
-                <img
-                  src={ownerProfile.avatar_url}
-                  alt={ownerProfile.username || 'User'}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                {/* Owner */}
+                {ownerProfile && (
+                  <button
+                    onClick={() => navigate(`/user/${ownerProfile.id}`)}
+                    className="flex items-center gap-3 mt-2 group w-fit"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
+                    {ownerProfile.avatar_url ? (
+                      <img
+                        src={ownerProfile.avatar_url}
+                        alt={ownerProfile.username || 'User'}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-700 group-hover:border-red-500 transition"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center border-2 border-gray-600 group-hover:border-red-500 transition">
+                        <svg
+                          className="w-5 h-5 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      </div>
+                    )}
+
+                    <span className="text-sm text-gray-400 group-hover:text-red-400 transition">
+                      @{ownerProfile.username || 'user'}
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {/* Right: Actions */}
+              {canEdit && (
+                <div className="flex gap-3 self-start">
+                  <button
+                    onClick={() => setShowSellForm(true)}
+                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:opacity-90 transition font-semibold shadow-lg shadow-green-500/50"
+                  >
+                    {vehicle?.for_sale ? 'Update Price' : 'Sell Vehicle'}
+                  </button>
+
+                  <button
+                    onClick={deleteVehicle}
+                    className="px-6 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl hover:opacity-90 transition font-semibold shadow-lg shadow-red-500/50"
+                  >
+                    Delete
+                  </button>
                 </div>
               )}
-
-              <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                @{ownerProfile.username || 'user'}
-              </span>
-            </button>
-          )}
-        </div>
-
-        {/* Right: Actions */}
-        {canEdit && (
-          <div className="flex gap-3 self-start">
-            <button
-              onClick={() => setShowSellForm(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
-            >
-              {vehicle?.for_sale ? 'Update Price' : 'Sell Vehicle'}
-            </button>
-
-            <button
-              onClick={deleteVehicle}
-              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition"
-            >
-              Delete
-            </button>
+            </div>
           </div>
-        )}
         </div>
 
 
@@ -695,12 +744,12 @@ const VehicleDetails = () => {
         {/* MAIN SECTION */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* CAROUSEL */}
-          <div className="relative bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg">
+          <div className="relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-2xl border border-gray-700/50">
             {imageUrls.length > 0 ? (
               <>
                 <img
                   src={imageUrls[activeIndex].image_url}
-                  className="w-full h-[380px] object-cover"
+                  className="w-full h-[400px] object-cover transition-transform duration-500"
                   alt="Vehicle"
                 />
 
@@ -711,7 +760,7 @@ const VehicleDetails = () => {
                       i === 0 ? imageUrls.length - 1 : i - 1
                     )
                   }
-                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/60 px-3 py-2 rounded-full dark:bg-black/60"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/60 backdrop-blur-sm hover:bg-black/80 px-4 py-3 rounded-full text-white transition-all hover:scale-110"
                 >
                   ‹
                 </button>
@@ -722,14 +771,14 @@ const VehicleDetails = () => {
                       i === imageUrls.length - 1 ? 0 : i + 1
                     )
                   }
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/60 px-3 py-2 rounded-full dark:bg-black/60"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/60 backdrop-blur-sm hover:bg-black/80 px-4 py-3 rounded-full text-white transition-all hover:scale-110"
                 >
                   ›
                 </button>
 
                 {/* Bottom overlay */}
-                <div className="absolute bottom-0 w-full bg-black/60 px-4 py-3 flex justify-between items-center">
-                  <span className="text-sm text-gray-300">
+                <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent px-6 py-4 flex justify-between items-center">
+                  <span className="text-sm text-white font-semibold">
                     {activeIndex + 1} / {imageUrls.length}
                   </span>
                   {canEdit && (
@@ -739,12 +788,12 @@ const VehicleDetails = () => {
                         onClick={() =>
                           makeCoverImage(imageUrls[activeIndex].id)
                         }
-                        className="bg-blue-600 text-sm px-4 py-1 rounded-md"
+                        className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm px-4 py-2 rounded-lg hover:opacity-90 transition font-semibold"
                       >
                         Make Cover
                       </button>
                     ) : (
-                      <span className="text-blue-400 font-semibold text-sm">
+                      <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm px-4 py-2 rounded-lg font-semibold">
                         Cover Image
                       </span>
                     )}
@@ -753,15 +802,18 @@ const VehicleDetails = () => {
                 </div>
               </>
             ) : (
-              <div className="h-[380px] flex items-center justify-center text-gray-500 dark:text-gray-400">
-                No images uploaded
+              <div className="h-[400px] flex items-center justify-center text-gray-400">
+                <div className="text-center">
+                  <p className="text-lg mb-2">No images uploaded</p>
+                  <p className="text-sm text-gray-500">Upload images to showcase your vehicle</p>
+                </div>
               </div>
             )}
           </div>
 
           {/* VEHICLE INFO */}
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 shadow-lg space-y-3">
-            <InfoRow label="Mileage" value={vehicle.current_mileage} />
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-gray-700/50 space-y-4">
+            <InfoRow label="Mileage" value={vehicle.current_mileage ? `${vehicle.current_mileage.toLocaleString()} mi` : '—'} />
             <InfoRow label="Engine" value={vehicle.engine} />
             <InfoRow label="Transmission" value={vehicle.transmission} />
             <InfoRow label="Color" value={vehicle.color} />
@@ -820,7 +872,10 @@ const VehicleDetails = () => {
               <input
                 type="checkbox"
                 checked={hideGasLogs}
-                onChange={(e) => setHideGasLogs(e.target.checked)}
+                onChange={(e) => {
+                  setHideGasLogs(e.target.checked);
+                  setLogsToShow(10); // Reset to 10 when toggling
+                }}
                 className="sr-only"
               />
               <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
@@ -857,27 +912,27 @@ const VehicleDetails = () => {
 
         {/* Add Maintenance Logs */}
         {canEdit && addLogVisible && (
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 shadow-xl mt-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 shadow-xl mt-6 border border-gray-700/50">
             
             {/* Header */}
-            <div className="mb-5">
-              <h3 className="text-xl font-bold text-black dark:text-white">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-white mb-2">
                 Add Maintenance Log
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-400">
                 Keep track of work, parts, and costs
               </p>
             </div>
 
             <form className="space-y-4" onSubmit={addMaintenanceLog}>
 
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-400 mb-4">
                 Fields marked with <span className="text-red-500">*</span> are required
               </p>
 
               {/* Title */}
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block mb-2 text-sm font-medium text-gray-300">
                   Log Title <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -886,16 +941,16 @@ const VehicleDetails = () => {
                   required
                   value={logTitle}
                   onChange={(e) => setLogTitle(e.target.value)}
-                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                            border border-gray-300 dark:border-gray-600 rounded-lg
+                  className="w-full p-3 bg-gray-900 text-white
+                            border border-gray-700 rounded-lg
                             focus:outline-none focus:ring-2 focus:ring-orange-500
-                            invalid:border-red-500 invalid:ring-red-500"
+                            invalid:border-red-500 invalid:ring-red-500 placeholder-gray-500"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block mb-2 text-sm font-medium text-gray-300">
                   Description
                 </label>
                 <textarea
@@ -903,16 +958,16 @@ const VehicleDetails = () => {
                   placeholder="What was done?"
                   value={logDescription}
                   onChange={(e) => setLogDescription(e.target.value)}
-                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                            border border-gray-300 dark:border-gray-600 rounded-lg
-                            focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full p-3 bg-gray-900 text-white
+                            border border-gray-700 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-500"
                 />
               </div>
 
               {/* Cost + Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Cost ($) <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -923,15 +978,15 @@ const VehicleDetails = () => {
                     placeholder="0.00"
                     value={logCost}
                     onChange={(e) => setLogCost(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
+                    className="w-full p-3 bg-gray-900 text-white
+                              border border-gray-700 rounded-lg
                               focus:outline-none focus:ring-2 focus:ring-orange-500
-                              invalid:border-red-500 invalid:ring-red-500"
+                              invalid:border-red-500 invalid:ring-red-500 placeholder-gray-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Date <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -939,10 +994,10 @@ const VehicleDetails = () => {
                     required
                     value={logDate}
                     onChange={(e) => setLogDate(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
+                    className="w-full p-3 bg-gray-900 text-white
+                              border border-gray-700 rounded-lg
                               focus:outline-none focus:ring-2 focus:ring-orange-500
-                              invalid:border-red-500 invalid:ring-red-500"
+                              invalid:border-red-500 invalid:ring-red-500 placeholder-gray-500"
                   />
                 </div>
               </div>
@@ -950,7 +1005,7 @@ const VehicleDetails = () => {
               {/* Mileage + Tools */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Mileage
                   </label>
                   <input
@@ -959,14 +1014,14 @@ const VehicleDetails = () => {
                     placeholder="Mileage"
                     value={logMileage}
                     onChange={(e) => setLogMileage(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
-                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full p-3 bg-gray-900 text-white
+                              border border-gray-700 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Tools Used
                   </label>
                   <input
@@ -974,9 +1029,9 @@ const VehicleDetails = () => {
                     placeholder="Optional"
                     value={logToolsUsed}
                     onChange={(e) => setLogToolsUsed(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
-                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full p-3 bg-gray-900 text-white
+                              border border-gray-700 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-500"
                   />
                 </div>
               </div>
@@ -984,7 +1039,7 @@ const VehicleDetails = () => {
               {/* Labor + Performer */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Labor Hours
                   </label>
                   <input
@@ -994,14 +1049,14 @@ const VehicleDetails = () => {
                     placeholder="Hours"
                     value={logLaborHours}
                     onChange={(e) => setLogLaborHours(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
-                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full p-3 bg-gray-900 text-white
+                              border border-gray-700 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Performed By
                   </label>
                   <input
@@ -1009,16 +1064,16 @@ const VehicleDetails = () => {
                     placeholder="Yourself, friend, shop…"
                     value={logPerformer}
                     onChange={(e) => setLogPerformer(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
-                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full p-3 bg-gray-900 text-white
+                              border border-gray-700 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-500"
                   />
                 </div>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block mb-2 text-sm font-medium text-gray-300">
                   Notes
                 </label>
                 <textarea
@@ -1026,9 +1081,9 @@ const VehicleDetails = () => {
                   placeholder="Any other notes"
                   value={logNotes}
                   onChange={(e) => setLogNotes(e.target.value)}
-                  className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                            border border-gray-300 dark:border-gray-600 rounded-lg
-                            focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full p-3 bg-gray-900 text-white
+                            border border-gray-700 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-500"
                 />
               </div>
 
@@ -1036,9 +1091,9 @@ const VehicleDetails = () => {
               <button
                 type="submit"
                 disabled={logUploading}
-                className="w-full mt-2 bg-gradient-to-r from-orange-500 to-red-500
+                className="w-full mt-4 bg-gradient-to-r from-orange-500 to-red-500
                           text-white font-semibold py-3 rounded-lg
-                          hover:opacity-90 transition disabled:opacity-50"
+                          hover:opacity-90 transition disabled:opacity-50 shadow-lg shadow-orange-500/50"
               >
                 {logUploading ? 'Adding Log…' : 'Add Maintenance Log'}
               </button>
@@ -1050,14 +1105,14 @@ const VehicleDetails = () => {
 
         {/* Add Gas Logs */}
         {canEdit && addGasVisible && (
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 shadow-xl mt-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 shadow-xl mt-6 border border-gray-700/50">
             
             {/* Header */}
-            <div className="mb-5">
-              <h3 className="text-xl font-bold text-black dark:text-white">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-white mb-2">
                 Add Gas!
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-400">
                 Keep track of when you get gas
               </p>
             </div>
@@ -1072,7 +1127,7 @@ const VehicleDetails = () => {
               {/* Cost + Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Cost ($) <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -1083,15 +1138,15 @@ const VehicleDetails = () => {
                     placeholder="0.00"
                     value={logCost}
                     onChange={(e) => setLogCost(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
+                    className="w-full p-3 bg-gray-900 text-white
+                              border border-gray-700 rounded-lg
                               focus:outline-none focus:ring-2 focus:ring-orange-500
-                              invalid:border-red-500 invalid:ring-red-500"
+                              invalid:border-red-500 invalid:ring-red-500 placeholder-gray-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Date <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -1099,17 +1154,17 @@ const VehicleDetails = () => {
                     required
                     value={logDate}
                     onChange={(e) => setLogDate(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
+                    className="w-full p-3 bg-gray-900 text-white
+                              border border-gray-700 rounded-lg
                               focus:outline-none focus:ring-2 focus:ring-orange-500
-                              invalid:border-red-500 invalid:ring-red-500"
+                              invalid:border-red-500 invalid:ring-red-500 placeholder-gray-500"
                   />
                 </div>
               </div>
               {/* Mileage + Gallons*/}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Mileage
                   </label>
                   <input
@@ -1118,14 +1173,14 @@ const VehicleDetails = () => {
                     placeholder="0"
                     value={logMileage}
                     onChange={(e) => setLogMileage(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
-                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full p-3 bg-gray-900 text-white
+                              border border-gray-700 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Gallons
                   </label>
                   <input
@@ -1135,9 +1190,9 @@ const VehicleDetails = () => {
                     placeholder="0.0"
                     value={logGallons}
                     onChange={(e) => setLogGallons(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-gray-700 text-black dark:text-white
-                              border border-gray-300 dark:border-gray-600 rounded-lg
-                              focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full p-3 bg-gray-900 text-white
+                              border border-gray-700 rounded-lg
+                              focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-500"
                   />
                 </div>
 
@@ -1147,9 +1202,9 @@ const VehicleDetails = () => {
               <button
                 type="submit"
                 disabled={logUploading}
-                className="w-full mt-2 bg-gradient-to-r from-orange-500 to-red-500
+                className="w-full mt-4 bg-gradient-to-r from-orange-500 to-red-500
                           text-white font-semibold py-3 rounded-lg
-                          hover:opacity-90 transition disabled:opacity-50"
+                          hover:opacity-90 transition disabled:opacity-50 shadow-lg shadow-orange-500/50"
               >
                 {logUploading ? 'Adding Log…' : 'Add Gas Log'}
               </button>
@@ -1181,31 +1236,31 @@ const VehicleDetails = () => {
               return (
                 <>
                   {/* Total Logs */}
-                  <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                  <div className="flex flex-col items-center justify-center bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-gray-700/50">
+                    <p className="text-sm text-gray-400 mb-2">
                       # of Logs
                     </p>
-                    <h1 className="text-3xl font-bold text-black dark:text-white">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
                       {filteredTotalLogs}
                     </h1>
                   </div>
 
                   {/* Total Spent */}
-                  <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                  <div className="flex flex-col items-center justify-center bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-gray-700/50">
+                    <p className="text-sm text-gray-400 mb-2">
                       Total Spent
                     </p>
-                    <h1 className="text-3xl font-bold text-green-500">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
                       ${filteredTotalPrice.toFixed(2)}
                     </h1>
                   </div>
 
                   {/* Hours Spent */}
-                  <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                  <div className="flex flex-col items-center justify-center bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-gray-700/50">
+                    <p className="text-sm text-gray-400 mb-2">
                       Hours Spent
                     </p>
-                    <h1 className="text-3xl font-bold text-blue-500">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
                       {filteredTotalHours}
                     </h1>
                   </div>
@@ -1221,22 +1276,25 @@ const VehicleDetails = () => {
               : maintenanceLogs;
             
             return filteredLogs.length === 0 ? (
-              <p className="text-gray-600 dark:text-gray-400">
-                {hideGasLogs 
-                  ? 'No maintenance logs (gas logs hidden). Start by adding one above 👨‍🔧'
-                  : canEdit 
-                    ? 'No maintenance logs yet. Start by adding one above 👨‍🔧' 
-                    : 'No maintenance logs yet🔧'}
-              </p>
+              <div className="text-center py-12 bg-gray-800/30 rounded-xl border border-gray-700/50">
+                <p className="text-gray-400 text-lg">
+                  {hideGasLogs 
+                    ? 'No maintenance logs (gas logs hidden). Start by adding one above 👨‍🔧'
+                    : canEdit 
+                      ? 'No maintenance logs yet. Start by adding one above 👨‍🔧' 
+                      : 'No maintenance logs yet🔧'}
+                </p>
+              </div>
             ) : (
-              <div className="relative border-l-2 border-gray-300 dark:border-gray-700 ml-3 space-y-6">
-                {filteredLogs.map((log) => (
+              <>
+                <div className="relative border-l-2 border-gray-700 ml-3 space-y-6">
+                  {filteredLogs.slice(0, logsToShow).map((log) => (
                 <div key={log.id} className="relative pl-8">
                   {/* Timeline dot */}
-                  <span className={`absolute -left-[9px] top-2 h-4 w-4 rounded-full ${log.gas ? 'bg-orange-600' : 'bg-blue-600'}`} />
+                  <span className={`absolute -left-[9px] top-2 h-5 w-5 rounded-full border-2 border-gray-900 ${log.gas ? 'bg-orange-500 shadow-lg shadow-orange-500/50' : 'bg-blue-500 shadow-lg shadow-blue-500/50'}`} />
 
                   {editingLogId === log.id ? (
-                    <div className={`rounded-xl p-6 shadow-lg border-2 border-blue-400 dark:border-blue-600 ${log.gas ? 'bg-orange-50 dark:bg-yellow-900/30' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <div className={`rounded-xl p-6 shadow-xl border-2 ${log.gas ? 'bg-orange-500/20 border-orange-500/50' : 'bg-gray-800/50 border-blue-500/50'} backdrop-blur-sm`}>
                       {/* Header */}
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex-1">
@@ -1448,7 +1506,7 @@ const VehicleDetails = () => {
                       )}
                     </div>
                   ) : (
-                    <div className={`rounded-xl p-5 shadow-lg ${log.gas ? 'bg-orange-300 dark:bg-yellow-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                    <div className={`rounded-xl p-6 shadow-xl border ${log.gas ? 'bg-orange-500/20 border-orange-500/30' : 'bg-gray-800/50 border-gray-700/50'} backdrop-blur-sm hover:scale-[1.02] transition-transform`}>
                     {/* Header */}
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold">{log.title}</h3>
@@ -1589,8 +1647,22 @@ const VehicleDetails = () => {
                   )}
                   
                 </div>
-              ))}
-            </div>
+                  ))}
+                </div>
+                
+                {/* Load More Button */}
+                {filteredLogs.length > logsToShow && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={() => setLogsToShow(prev => prev + 10)}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:opacity-90 transition font-semibold shadow-lg shadow-blue-500/50 flex items-center gap-2"
+                    >
+                      Load More ({filteredLogs.length - logsToShow} remaining)
+                      <ArrowRightIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+              </>
             );
           })()}
         </div>
@@ -1613,9 +1685,9 @@ export default VehicleDetails;
 /* ------------------ INFO ROW ------------------ */
 
 const InfoRow = ({ label, value }) => (
-  <div className="flex justify-between border-b border-gray-300 dark:border-gray-700 pb-2">
-    <span className="text-gray-600 dark:text-gray-400">{label}</span>
-    <span className="font-medium">{value || '—'}</span>
+  <div className="flex justify-between border-b border-gray-700/50 pb-3">
+    <span className="text-gray-400">{label}</span>
+    <span className="font-semibold text-white">{value || '—'}</span>
   </div>
 );
 
@@ -1723,16 +1795,16 @@ const DiscussionSection = ({ vehicleId, vehicleOwnerId }) => {
   };
 
   return (
-    <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <ChatBubbleLeftIcon className="h-6 w-6 text-blue-500" />
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-gray-700/50">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold flex items-center gap-2 text-white">
+          <ChatBubbleLeftIcon className="h-6 w-6 text-blue-400" />
           Discussions
         </h2>
         {!isOwner && (
           <button
             onClick={() => setShowNewPost(!showNewPost)}
-            className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition"
+            className="text-sm bg-gradient-to-r from-blue-500 to-cyan-500 hover:opacity-90 text-white px-4 py-2 rounded-lg transition font-semibold shadow-lg shadow-blue-500/50"
           >
             {showNewPost ? 'Cancel' : '+ New Post'}
           </button>
@@ -1741,24 +1813,24 @@ const DiscussionSection = ({ vehicleId, vehicleOwnerId }) => {
 
       {/* New Post Form */}
       {showNewPost && (
-        <form onSubmit={handleSubmitPost} className="mb-4 p-4 bg-white dark:bg-gray-700 rounded-lg space-y-3">
+        <form onSubmit={handleSubmitPost} className="mb-6 p-5 bg-gray-900/50 rounded-xl border border-gray-700/50 space-y-4">
           <input
             type="text"
             placeholder="Post title..."
             value={newPostTitle}
             onChange={(e) => setNewPostTitle(e.target.value)}
-            className="w-full p-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
           />
           <textarea
             placeholder="What's on your mind?"
             value={newPostContent}
             onChange={(e) => setNewPostContent(e.target.value)}
             rows={3}
-            className="w-full p-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-gray-500"
           />
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md transition"
+            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:opacity-90 text-white py-3 rounded-lg transition font-semibold shadow-lg shadow-blue-500/50"
           >
             Post
           </button>
@@ -1768,16 +1840,16 @@ const DiscussionSection = ({ vehicleId, vehicleOwnerId }) => {
       {/* Discussions List */}
       <div className="space-y-4 max-h-[600px] overflow-y-auto">
         {loading ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-4">Loading...</p>
+          <p className="text-center text-gray-400 py-4">Loading...</p>
         ) : discussions.length === 0 ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+          <p className="text-center text-gray-400 py-8">
             No discussions yet. Start the conversation!
           </p>
         ) : (
           discussions.map((disc) => (
           <div
             key={disc.id}
-            className="bg-white dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition"
+            className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50 hover:border-blue-500/50 hover:shadow-lg transition-all cursor-pointer"
           >
             <div className="flex gap-3">
               {/* Content - Clickable */}
@@ -1785,11 +1857,11 @@ const DiscussionSection = ({ vehicleId, vehicleOwnerId }) => {
                 className="flex-1 min-w-0 cursor-pointer"
                 onClick={() => navigate(`/discussion/${disc.id}`)}
               >
-                <h3 className="font-semibold text-sm mb-1 line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition">{disc.title}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                <h3 className="font-semibold text-sm mb-1 line-clamp-2 hover:text-blue-400 transition text-white">{disc.title}</h3>
+                <p className="text-sm text-gray-400 mb-2 line-clamp-2">
                   {disc.content}
                 </p>
-                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
+                <div className="flex items-center gap-3 text-xs text-gray-500">
                   <span className="font-medium">{disc.author}</span>
                   <span>•</span>
                   <span>{disc.timestamp}</span>
@@ -2106,16 +2178,16 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
   }
 
   return (
-    <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-5 shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <QuestionMarkCircleIcon className="h-6 w-6 text-green-500" />
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-gray-700/50">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold flex items-center gap-2 text-white">
+          <QuestionMarkCircleIcon className="h-6 w-6 text-green-400" />
           Q&A
         </h2>
         {!isOwner && (
           <button
             onClick={() => setShowNewQuestion(!showNewQuestion)}
-            className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md transition"
+            className="text-sm bg-gradient-to-r from-green-500 to-emerald-500 hover:opacity-90 text-white px-4 py-2 rounded-lg transition font-semibold shadow-lg shadow-green-500/50"
           >
             {showNewQuestion ? 'Cancel' : '+ Ask Question'}
           </button>
@@ -2124,17 +2196,17 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
 
       {/* New Question Form */}
       {showNewQuestion && (
-        <form onSubmit={handleSubmitQuestion} className="mb-4 p-4 bg-white dark:bg-gray-700 rounded-lg">
+        <form onSubmit={handleSubmitQuestion} className="mb-6 p-5 bg-gray-900/50 rounded-xl border border-gray-700/50">
           <textarea
             placeholder="What would you like to know?"
             value={newQuestion}
             onChange={(e) => setNewQuestion(e.target.value)}
             rows={3}
-            className="w-full p-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 resize-none mb-3"
+            className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none mb-4 placeholder-gray-500"
           />
           <button
             type="submit"
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md transition"
+            className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:opacity-90 text-white py-3 rounded-lg transition font-semibold shadow-lg shadow-green-500/50"
           >
             Ask Question
           </button>
@@ -2144,16 +2216,16 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
       {/* Questions List */}
       <div className="space-y-4 max-h-[600px] overflow-y-auto">
         {loading ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-4">Loading...</p>
+          <p className="text-center text-gray-400 py-4">Loading...</p>
         ) : questions.length === 0 ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+          <p className="text-center text-gray-400 py-8">
             No questions yet. Be the first to ask!
           </p>
         ) : (
           questions.map((q) => (
           <div
             key={q.id}
-            className="bg-white dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition relative"
+            className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-5 border border-gray-700/50 hover:border-green-500/50 hover:shadow-lg transition-all relative"
           > 
             {(isOwner || q.user_id == session.user.id) && (
               <TrashIcon className="absolute bottom-4 right-4 h-5 w-5 text-gray-500 dark:text-gray-400 inline-block cursor-pointer hover:text-red-500" onClick={(e) => handleRemoveQuestion(q.id)}/>
@@ -2161,16 +2233,16 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
             
             <div className="flex items-start gap-3 mb-3">
               
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
                 q.isAnswered
-                  ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
-                  : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50'
+                  : 'bg-gray-700 text-gray-400'
               }`}>
                 {q.isAnswered ? '✓' : '?'}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm mb-1">{q.question}</h3>
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
+                <h3 className="font-semibold text-sm mb-1 text-white">{q.question}</h3>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
                   <span>{q.author}</span>
                   <span>•</span>
                   <span>{q.timestamp}</span>
@@ -2186,26 +2258,26 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
 
             {/* Answers */}
             {q.answers.length > 0 && (
-              <div className="ml-11 space-y-3 border-l-2 border-gray-200 dark:border-gray-600 pl-4">
+              <div className="ml-14 space-y-3 border-l-2 border-gray-700 pl-4">
                 {q.answers.map((answer) => (
                   <div
                     key={answer.id}
-                    className={`relative p-3 rounded-lg ${
+                    className={`relative p-4 rounded-lg ${
                       answer.isAccepted
-                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                        : 'bg-gray-50 dark:bg-gray-800'
-                    }`}
+                        ? 'bg-green-500/20 border border-green-500/50'
+                        : 'bg-gray-900/50 border border-gray-700/50'
+                    } backdrop-blur-sm`}
                   >
                     {answer.isAccepted && (
                       <div className="absolute -left-6 top-3 text-green-600 dark:text-green-400">
                         <CheckIcon className="h-5 w-5" />
                       </div>
                     )}
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    <p className="text-sm text-gray-300 mb-2">
                       {answer.content}
                     </p>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
+                      <div className="flex items-center gap-3 text-xs text-gray-400">
                         <span>{answer.author}</span>
                         <span>•</span>
                         <span>{answer.timestamp}</span>
@@ -2225,18 +2297,18 @@ const QASection = ({ vehicleId, vehicleOwnerId }) => {
             )}
 
             {/* Answer Input */}
-            <div className="ml-11 mt-3">
+            <div className="ml-14 mt-4">
               <form onSubmit={(e) => handleSubmitAnswer(q.id, e)} className="space-y-2">
                 <textarea
                   placeholder="Write an answer..."
                   value={newAnswers[q.id] || ''}
                   onChange={(e) => setNewAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
                   rows={2}
-                  className="w-full p-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 resize-none text-sm"
+                  className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none text-sm placeholder-gray-500"
                 />
                 <button
                   type="submit"
-                  className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md transition"
+                  className="text-sm bg-gradient-to-r from-green-500 to-emerald-500 hover:opacity-90 text-white px-4 py-2 rounded-lg transition font-semibold"
                 >
                   Post Answer
                 </button>
