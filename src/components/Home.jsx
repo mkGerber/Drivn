@@ -139,7 +139,8 @@ const Home = () => {
           </div>
 
           {/* Stats */}
-          <div
+          {false && (
+            <div
             className={`grid grid-cols-3 gap-8 mt-16 transform transition-all duration-1000 delay-700 ${
               isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
             }`}
@@ -157,6 +158,12 @@ const Home = () => {
               </div>
             ))}
           </div>
+          )}
+
+          <div className="text-center mt-16">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">BETA TESTING NOW!</h1>
+          </div>
+          
         </div>
 
         {/* Scroll Indicator */}
