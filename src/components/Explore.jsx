@@ -342,80 +342,182 @@ const Explore = () => {
       {!loading && filteredVehicles.length > 0 && (
         <div className="max-w-7xl mx-auto px-6 pb-12">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredVehicles.map((car, index) => (
-              <Link
-                key={car.id}
-                to={`/vehicle/${car.id}`}
-                className={`transform transition-all duration-700 ${
-                  isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                }`}
-                style={{ transitionDelay: `${index * 100}ms` }}
-              >
-                <div className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-700/50 hover:border-red-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-500/20">
-                  {/* Image Container */}
-                  <div className="relative h-[300px] overflow-hidden">
-                    <img
-                      src={coverImages[car.id] || notFound}
-                      alt={`${car.make} ${car.model}`}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    
-                    {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    
-                    {/* Hover Text */}
-                    <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className="flex items-center gap-2 text-white font-semibold">
-                        <span>View Details</span>
-                        <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            {(() => {
+              const items = [];
+              const adTemplates = [
+                {
+                  title: "Premium Car Parts",
+                  subtitle: "Upgrade Your Build",
+                  description: "Quality parts for enthusiasts",
+                  gradient: "from-blue-500 to-cyan-500"
+                },
+                {
+                  title: "Performance Tuning",
+                  subtitle: "Unlock Your Potential",
+                  description: "Expert tuning services",
+                  gradient: "from-purple-500 to-pink-500"
+                },
+                {
+                  title: "Custom Wheels",
+                  subtitle: "Stand Out",
+                  description: "Premium wheel selection",
+                  gradient: "from-orange-500 to-red-500"
+                },
+                {
+                  title: "Auto Detailing",
+                  subtitle: "Showroom Quality",
+                  description: "Professional detailing services",
+                  gradient: "from-green-500 to-emerald-500"
+                }
+              ];
+
+              filteredVehicles.forEach((car, index) => {
+                // Add car card
+                items.push(
+                  <Link
+                    key={car.id}
+                    to={`/vehicle/${car.id}`}
+                    className={`transform transition-all duration-700 ${
+                      isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                    }`}
+                    style={{ transitionDelay: `${index * 100}ms` }}
+                  >
+                    <div className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-700/50 hover:border-red-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-500/20">
+                      {/* Image Container */}
+                      <div className="relative h-[300px] overflow-hidden">
+                        <img
+                          src={coverImages[car.id] || notFound}
+                          alt={`${car.make} ${car.model}`}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        
+                        {/* Hover Text */}
+                        <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="flex items-center gap-2 text-white font-semibold">
+                            <span>View Details</span>
+                            <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </div>
+
+                        {/* Year Badge */}
+                        <div className="absolute top-4 left-4">
+                          <span className="bg-black/70 backdrop-blur-sm text-white text-sm font-bold px-3 py-1 rounded-lg">
+                            {car.year}
+                          </span>
+                        </div>
+
+                        {/* For Sale Badge */}
+                        {car.for_sale && (
+                          <div className="absolute top-4 right-4">
+                            <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg animate-pulse">
+                              FOR SALE
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    </div>
 
-                    {/* Year Badge */}
-                    <div className="absolute top-4 left-4">
-                      <span className="bg-black/70 backdrop-blur-sm text-white text-sm font-bold px-3 py-1 rounded-lg">
-                        {car.year}
-                      </span>
-                    </div>
+                      {/* Info Section */}
+                      <div className="p-5 bg-gradient-to-b from-gray-800/50 to-gray-900/50">
+                        <h2 className="text-lg font-bold text-white mb-1 group-hover:text-red-400 transition-colors">
+                          {car.make} {car.model}
+                        </h2>
+                        {car.trim && (
+                          <p className="text-gray-400 text-sm mb-3">{car.trim}</p>
+                        )}
 
-                    {/* For Sale Badge */}
-                    {car.for_sale && (
-                      <div className="absolute top-4 right-4">
-                        <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg animate-pulse">
-                          FOR SALE
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info Section */}
-                  <div className="p-5 bg-gradient-to-b from-gray-800/50 to-gray-900/50">
-                    <h2 className="text-lg font-bold text-white mb-1 group-hover:text-red-400 transition-colors">
-                      {car.make} {car.model}
-                    </h2>
-                    {car.trim && (
-                      <p className="text-gray-400 text-sm mb-3">{car.trim}</p>
-                    )}
-
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700/50">
-                      <div>
-                        <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Mileage</div>
-                        <div className="text-sm font-semibold text-white">
-                          {car.current_mileage?.toLocaleString() || '0'} mi
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700/50">
+                          <div>
+                            <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Mileage</div>
+                            <div className="text-sm font-semibold text-white">
+                              {car.current_mileage?.toLocaleString() || '0'} mi
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Transmission</div>
+                            <div className="text-sm font-semibold text-white uppercase">
+                              {car.transmission || 'N/A'}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Transmission</div>
-                        <div className="text-sm font-semibold text-white uppercase">
-                          {car.transmission || 'N/A'}
+                    </div>
+                  </Link>
+                );
+
+                // Add ad card after every 5 cars
+                if ((index + 1) % 5 === 0) {
+                  const adIndex = Math.floor((index + 1) / 5) - 1;
+                  const ad = adTemplates[adIndex % adTemplates.length];
+                  items.push(
+                    <div
+                      key={`ad-${adIndex}`}
+                      className={`transform transition-all duration-700 ${
+                        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                      }`}
+                      style={{ transitionDelay: `${(index + 1) * 100}ms` }}
+                    >
+                      <div className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/20 cursor-pointer">
+                        {/* Image Container */}
+                        <div className={`relative h-[300px] overflow-hidden bg-gradient-to-br ${ad.gradient}`}>
+                          <div className="absolute inset-0 bg-gradient-to-br from-gray-900/80 to-gray-800/80"></div>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                            <div className={`text-4xl font-extrabold bg-gradient-to-r ${ad.gradient} bg-clip-text text-transparent mb-2`}>
+                              {ad.title}
+                            </div>
+                            <div className="text-xl font-semibold text-white mb-3">
+                              {ad.subtitle}
+                            </div>
+                            <div className="text-sm text-gray-300 mb-4">
+                              {ad.description}
+                            </div>
+                            <div className={`px-6 py-2 bg-gradient-to-r ${ad.gradient} rounded-lg text-white font-semibold text-sm`}>
+                              Learn More
+                            </div>
+                          </div>
+                          <div className="absolute top-4 right-4">
+                            <span className="bg-black/70 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-lg">
+                              AD
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Info Section */}
+                        <div className="p-5 bg-gradient-to-b from-gray-800/50 to-gray-900/50">
+                          <h2 className="text-lg font-bold text-white mb-1">
+                            Sponsored
+                          </h2>
+                          <p className="text-gray-400 text-sm mb-3">
+                            {ad.description}
+                          </p>
+
+                          {/* Stats Grid */}
+                          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700/50">
+                            <div>
+                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Premium</div>
+                              <div className="text-sm font-semibold text-white">
+                                Quality
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Trusted</div>
+                              <div className="text-sm font-semibold text-white">
+                                Service
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                  );
+                }
+              });
+
+              return items;
+            })()}
           </div>
         </div>
       )}

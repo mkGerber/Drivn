@@ -868,15 +868,15 @@ const VehicleDetails = () => {
               <button
                 key={img.id}
                 onClick={() => setActiveIndex(index)}
-                className={`border-2 rounded-lg ${
+                className={`flex-shrink-0 border-2 rounded-lg transition-all ${
                   index === activeIndex
-                    ? 'border-blue-500'
-                    : 'border-transparent'
+                    ? 'border-blue-500 scale-105'
+                    : 'border-transparent hover:border-gray-600'
                 }`}
               >
                 <img
                   src={img.image_url}
-                  className="h-24 w-32 object-cover rounded-md"
+                  className="h-28 w-40 md:h-32 md:w-48 object-cover rounded-md"
                   alt="Thumbnail"
                 />
               </button>

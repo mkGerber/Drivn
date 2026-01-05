@@ -3,7 +3,7 @@ import Navbar from './Navbar';
 import { PlusIcon, StarIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import supabase from '../supabaseClient';
 import { Link } from 'react-router-dom';
-import stockCarImage from '../assets/stock-car.jpg';
+import stockCarImage from '../assets/notfound.jpg';
 import { UserAuth } from '../context/AuthContext';
 
 const Garage = () => {
