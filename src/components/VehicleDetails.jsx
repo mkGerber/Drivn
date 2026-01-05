@@ -83,6 +83,29 @@ const VehicleDetails = () => {
   const [askingPrice, setAskingPrice] = useState("");
   const [sellingVehicle, setSellingVehicle] = useState(false);
 
+  // Edit vehicle info
+  const [editingVehicle, setEditingVehicle] = useState(false);
+  const [editingVehicleInfo, setEditingVehicleInfo] = useState(false);
+  const [editedMake, setEditedMake] = useState("");
+  const [editedModel, setEditedModel] = useState("");
+  const [editedYear, setEditedYear] = useState("");
+  const [editedTrim, setEditedTrim] = useState("");
+  const [editedEngine, setEditedEngine] = useState("");
+  const [editedTransmission, setEditedTransmission] = useState("");
+  const [editedMileage, setEditedMileage] = useState("");
+  const [editedColor, setEditedColor] = useState("");
+  const [editedLicensePlate, setEditedLicensePlate] = useState("");
+  const [editedVin, setEditedVin] = useState("");
+  
+  // Visibility toggles for info fields
+  const [showMileage, setShowMileage] = useState(true);
+  const [showEngine, setShowEngine] = useState(true);
+  const [showTransmission, setShowTransmission] = useState(true);
+  const [showColor, setShowColor] = useState(true);
+  const [showTrim, setShowTrim] = useState(true);
+  const [showLicensePlate, setShowLicensePlate] = useState(true);
+  const [showVin, setShowVin] = useState(true);
+
 
   
 
@@ -198,6 +221,17 @@ const VehicleDetails = () => {
         .single();
 
       setVehicle(data);
+      
+      // Initialize visibility state from vehicle data
+      if (data) {
+        setShowMileage(data.show_mileage !== false);
+        setShowEngine(data.show_engine !== false);
+        setShowTransmission(data.show_transmission !== false);
+        setShowColor(data.show_color !== false);
+        setShowTrim(data.show_trim !== false);
+        setShowLicensePlate(data.show_license_plate !== false);
+        setShowVin(data.show_vin !== false);
+      }
       
       // Fetch owner profile
       if (data?.user_id) {
@@ -456,6 +490,77 @@ const VehicleDetails = () => {
 
       setShowSellForm(false);
     }
+
+  /* ------------------ EDIT VEHICLE INFO ------------------ */
+  const handleEditVehicleInfo = () => {
+    if (!vehicle) return;
+    setEditedMake(vehicle.make || '');
+    setEditedModel(vehicle.model || '');
+    setEditedYear(vehicle.year || '');
+    setEditedTrim(vehicle.trim || '');
+    setEditedEngine(vehicle.engine || '');
+    setEditedTransmission(vehicle.transmission || '');
+    setEditedMileage(vehicle.current_mileage || '');
+    setEditedColor(vehicle.color || '');
+    setEditedLicensePlate(vehicle.license_plate || '');
+    setEditedVin(vehicle.vin || '');
+    
+    // Load visibility preferences from vehicle or default to true
+    setShowMileage(vehicle.show_mileage !== false);
+    setShowEngine(vehicle.show_engine !== false);
+    setShowTransmission(vehicle.show_transmission !== false);
+    setShowColor(vehicle.show_color !== false);
+    setShowTrim(vehicle.show_trim !== false);
+    setShowLicensePlate(vehicle.show_license_plate !== false);
+    setShowVin(vehicle.show_vin !== false);
+    
+    setEditingVehicleInfo(true);
+  };
+
+  const saveVehicleInfo = async (e) => {
+    e.preventDefault();
+    setEditingVehicle(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('cars')
+        .update({
+          make: editedMake,
+          model: editedModel,
+          year: editedYear ? Number(editedYear) : null,
+          trim: editedTrim || null,
+          engine: editedEngine || null,
+          transmission: editedTransmission || null,
+          current_mileage: editedMileage ? Number(editedMileage) : null,
+          color: editedColor || null,
+          license_plate: editedLicensePlate || null,
+          vin: editedVin || null,
+          show_mileage: showMileage,
+          show_engine: showEngine,
+          show_transmission: showTransmission,
+          show_color: showColor,
+          show_trim: showTrim,
+          show_license_plate: showLicensePlate,
+          show_vin: showVin
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating vehicle:', error);
+        alert('Failed to update vehicle. Please try again.');
+      } else {
+        setVehicle(data);
+        setEditingVehicleInfo(false);
+      }
+    } catch (err) {
+      console.error('Error in saveVehicleInfo:', err);
+      alert('Failed to update vehicle. Please try again.');
+    } finally {
+      setEditingVehicle(false);
+    }
+  };
 
     /* ------------------ DELETE VEHICLE ------------------ */
     const deleteVehicle = async () => {
@@ -765,7 +870,7 @@ const VehicleDetails = () => {
         {/* MAIN SECTION */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* CAROUSEL */}
-          <div className="relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-2xl border border-gray-700/50">
+          <div className="relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-2xl border border-gray-700/50 h-fit self-start">
             {imageUrls.length > 0 ? (
               <>
                 <img
@@ -833,11 +938,289 @@ const VehicleDetails = () => {
           </div>
 
           {/* VEHICLE INFO */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-gray-700/50 space-y-4">
-            <InfoRow label="Mileage" value={vehicle.current_mileage ? `${vehicle.current_mileage.toLocaleString()} mi` : '—'} />
-            <InfoRow label="Engine" value={vehicle.engine} />
-            <InfoRow label="Transmission" value={vehicle.transmission} />
-            <InfoRow label="Color" value={vehicle.color} />
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-gray-700/50">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Vehicle Information</h3>
+              {canEdit && !editingVehicleInfo && (
+                <button
+                  onClick={handleEditVehicleInfo}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition text-sm font-medium"
+                >
+                  <PencilSquareIcon className="w-4 h-4" />
+                  Edit
+                </button>
+              )}
+            </div>
+
+            {!editingVehicleInfo ? (
+              <div className="space-y-4">
+                {(() => {
+                  const showMileage = vehicle.show_mileage !== false;
+                  const showEngine = vehicle.show_engine !== false;
+                  const showTransmission = vehicle.show_transmission !== false;
+                  const showColor = vehicle.show_color !== false;
+                  const showTrim = vehicle.show_trim !== false;
+                  const showLicensePlate = vehicle.show_license_plate !== false;
+                  const showVin = vehicle.show_vin !== false;
+
+                  return (
+                    <>
+                      {showMileage && <InfoRow label="Mileage" value={vehicle.current_mileage ? `${vehicle.current_mileage.toLocaleString()} mi` : '—'} />}
+                      {showEngine && <InfoRow label="Engine" value={vehicle.engine} />}
+                      {showTransmission && <InfoRow label="Transmission" value={vehicle.transmission} />}
+                      {showColor && <InfoRow label="Color" value={vehicle.color} />}
+                      {showTrim && vehicle.trim && <InfoRow label="Trim" value={vehicle.trim} />}
+                      {showLicensePlate && vehicle.license_plate && <InfoRow label="License Plate" value={vehicle.license_plate} />}
+                      {showVin && vehicle.vin && <InfoRow label="VIN" value={vehicle.vin} />}
+                    </>
+                  );
+                })()}
+              </div>
+            ) : (
+              <form onSubmit={saveVehicleInfo} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Make <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedMake}
+                      onChange={(e) => setEditedMake(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Model <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedModel}
+                      onChange={(e) => setEditedModel(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Year <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1900"
+                      max="2100"
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedYear}
+                      onChange={(e) => setEditedYear(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Trim
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedTrim}
+                      onChange={(e) => setEditedTrim(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Engine
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedEngine}
+                      onChange={(e) => setEditedEngine(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Transmission
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedTransmission}
+                      onChange={(e) => setEditedTransmission(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Current Mileage
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedMileage}
+                      onChange={(e) => setEditedMileage(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Color
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedColor}
+                      onChange={(e) => setEditedColor(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      License Plate
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedLicensePlate}
+                      onChange={(e) => setEditedLicensePlate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      VIN
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedVin}
+                      onChange={(e) => setEditedVin(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Visibility Toggles */}
+                <div className="pt-6 border-t border-gray-700/50">
+                  <h4 className="text-lg font-semibold text-white mb-4">Visibility Settings</h4>
+                  <p className="text-sm text-gray-400 mb-4">Choose which information to display publicly</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg cursor-pointer hover:bg-gray-900 transition">
+                      <span className="text-gray-300">Show Mileage</span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={showMileage}
+                          onChange={(e) => setShowMileage(e.target.checked)}
+                          className="sr-only"
+                        />
+                        <div className={`w-11 h-6 rounded-full transition-colors ${showMileage ? 'bg-red-500' : 'bg-gray-600'}`}>
+                          <div className={`w-5 h-5 bg-white rounded-full transition-transform mt-0.5 ${showMileage ? 'translate-x-5 ml-0.5' : 'translate-x-0.5'}`}></div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg cursor-pointer hover:bg-gray-900 transition">
+                      <span className="text-gray-300">Show Engine</span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={showEngine}
+                          onChange={(e) => setShowEngine(e.target.checked)}
+                          className="sr-only"
+                        />
+                        <div className={`w-11 h-6 rounded-full transition-colors ${showEngine ? 'bg-red-500' : 'bg-gray-600'}`}>
+                          <div className={`w-5 h-5 bg-white rounded-full transition-transform mt-0.5 ${showEngine ? 'translate-x-5 ml-0.5' : 'translate-x-0.5'}`}></div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg cursor-pointer hover:bg-gray-900 transition">
+                      <span className="text-gray-300">Show Transmission</span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={showTransmission}
+                          onChange={(e) => setShowTransmission(e.target.checked)}
+                          className="sr-only"
+                        />
+                        <div className={`w-11 h-6 rounded-full transition-colors ${showTransmission ? 'bg-red-500' : 'bg-gray-600'}`}>
+                          <div className={`w-5 h-5 bg-white rounded-full transition-transform mt-0.5 ${showTransmission ? 'translate-x-5 ml-0.5' : 'translate-x-0.5'}`}></div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg cursor-pointer hover:bg-gray-900 transition">
+                      <span className="text-gray-300">Show Color</span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={showColor}
+                          onChange={(e) => setShowColor(e.target.checked)}
+                          className="sr-only"
+                        />
+                        <div className={`w-11 h-6 rounded-full transition-colors ${showColor ? 'bg-red-500' : 'bg-gray-600'}`}>
+                          <div className={`w-5 h-5 bg-white rounded-full transition-transform mt-0.5 ${showColor ? 'translate-x-5 ml-0.5' : 'translate-x-0.5'}`}></div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg cursor-pointer hover:bg-gray-900 transition">
+                      <span className="text-gray-300">Show Trim</span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={showTrim}
+                          onChange={(e) => setShowTrim(e.target.checked)}
+                          className="sr-only"
+                        />
+                        <div className={`w-11 h-6 rounded-full transition-colors ${showTrim ? 'bg-red-500' : 'bg-gray-600'}`}>
+                          <div className={`w-5 h-5 bg-white rounded-full transition-transform mt-0.5 ${showTrim ? 'translate-x-5 ml-0.5' : 'translate-x-0.5'}`}></div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg cursor-pointer hover:bg-gray-900 transition">
+                      <span className="text-gray-300">Show License Plate</span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={showLicensePlate}
+                          onChange={(e) => setShowLicensePlate(e.target.checked)}
+                          className="sr-only"
+                        />
+                        <div className={`w-11 h-6 rounded-full transition-colors ${showLicensePlate ? 'bg-red-500' : 'bg-gray-600'}`}>
+                          <div className={`w-5 h-5 bg-white rounded-full transition-transform mt-0.5 ${showLicensePlate ? 'translate-x-5 ml-0.5' : 'translate-x-0.5'}`}></div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg cursor-pointer hover:bg-gray-900 transition">
+                      <span className="text-gray-300">Show VIN</span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={showVin}
+                          onChange={(e) => setShowVin(e.target.checked)}
+                          className="sr-only"
+                        />
+                        <div className={`w-11 h-6 rounded-full transition-colors ${showVin ? 'bg-red-500' : 'bg-gray-600'}`}>
+                          <div className={`w-5 h-5 bg-white rounded-full transition-transform mt-0.5 ${showVin ? 'translate-x-5 ml-0.5' : 'translate-x-0.5'}`}></div>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditingVehicleInfo(false)}
+                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={editingVehicle}
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg hover:opacity-90 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {editingVehicle ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
 

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import supabase from '../supabaseClient';
 import { Link } from 'react-router-dom';
-import stockCarImage from '../assets/stock-car.jpg';
+import stockCarImage from '../assets/notfound.jpg';
 import { ArrowRightIcon, HomeIcon } from '@heroicons/react/24/outline';
 
 const UserProfile = () => {
