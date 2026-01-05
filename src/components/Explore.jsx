@@ -14,6 +14,7 @@ const Explore = () => {
   const [loading, setLoading] = useState(true);
   const [coverImages, setCoverImages] = useState({});
   const [isVisible, setIsVisible] = useState(false);
+  const [stats, setStats] = useState({ totalMileage: 0, totalMaintenanceCosts: 0 });
 
   // Filters / Sort
   const [search, setSearch] = useState('');
@@ -28,6 +29,15 @@ const Explore = () => {
       return;
     }
 
+    // Fetch all public vehicles for stats (no limit to get accurate totals)
+    const { data: allVehicles, error: allError } = await supabase
+      .from('cars')
+      .select('id, current_mileage')
+      .eq('public', true)
+      .neq('user_id', session.user.id)
+      .limit(10000); // High limit to ensure we get all vehicles
+
+    // Fetch limited vehicles for display
     const { data, error } = await supabase
       .from('cars')
       .select('*')
@@ -42,6 +52,57 @@ const Explore = () => {
     } else {
       setVehicles(data || []);
     }
+
+    // Calculate stats from all vehicles
+    let totalMileage = 0;
+    let totalMaintenanceCosts = 0;
+
+    if (!allError && allVehicles) {
+      console.log('All vehicles fetched:', allVehicles.length);
+      console.log('Vehicles data:', allVehicles);
+      
+      // Calculate total mileage
+      if (Array.isArray(allVehicles) && allVehicles.length > 0) {
+        for (let i = 0; i < allVehicles.length; i++) {
+          const car = allVehicles[i];
+          const mileage = Number(car?.current_mileage) || 0;
+          totalMileage += mileage;
+          console.log(`Car ${i + 1}: mileage = ${mileage}, running total = ${totalMileage}`);
+        }
+        console.log('Final total mileage:', totalMileage);
+        
+        // Fetch maintenance logs for all public vehicles
+        const carIds = allVehicles.map(car => car.id).filter(id => id);
+        console.log('Car IDs for maintenance logs:', carIds.length);
+        
+        if (carIds.length > 0) {
+          const { data: logsData, error: logsError } = await supabase
+            .from('vehicle_logs')
+            .select('cost')
+            .in('vehicle_id', carIds);
+
+          if (!logsError && logsData) {
+            console.log('Maintenance logs fetched:', logsData.length);
+            for (let i = 0; i < logsData.length; i++) {
+              const log = logsData[i];
+              const cost = Number(log?.cost) || 0;
+              totalMaintenanceCosts += cost;
+            }
+            console.log('Final total maintenance costs:', totalMaintenanceCosts);
+          } else if (logsError) {
+            console.error('Error fetching maintenance logs:', logsError);
+          }
+        }
+      } else {
+        console.warn('allVehicles is not an array or is empty:', allVehicles);
+      }
+    } else if (allError) {
+      console.error('Error fetching all vehicles:', allError);
+    }
+
+    console.log('Setting stats:', { totalMileage, totalMaintenanceCosts });
+    setStats({ totalMileage, totalMaintenanceCosts });
+
     setLoading(false);
   };
 
@@ -184,19 +245,19 @@ const Explore = () => {
                 <div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
                   {vehicles.length}
                 </div>
-                <div className="text-gray-400 text-sm mt-1">Total Vehicles</div>
+                <div className="text-gray-400 text-sm mt-1">Total Builds</div>
               </div>
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
                 <div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
-                  {filteredVehicles.length}
+                  {stats.totalMileage.toLocaleString()}
                 </div>
-                <div className="text-gray-400 text-sm mt-1">Showing</div>
+                <div className="text-gray-400 text-sm mt-1">Total Miles</div>
               </div>
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
                 <div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-                  {vehicles.filter(v => v.for_sale).length}
+                  ${stats.totalMaintenanceCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="text-gray-400 text-sm mt-1">For Sale</div>
+                <div className="text-gray-400 text-sm mt-1">Total Maintenance</div>
               </div>
             </div>
           </div>

@@ -362,18 +362,7 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Settings */}
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 mb-6">
-          <h2 className="text-xl font-bold text-white mb-4">Settings</h2>
-          <div className="space-y-3">
-            <button
-              onClick={handleSignOut}
-              className="w-full text-left px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/20 hover:text-red-300 transition border border-red-500/30 hover:border-red-500/50 font-semibold"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
+        
 
         {/* Feedback */}
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8">
@@ -397,6 +386,15 @@ const Profile = () => {
               <ArrowRightIcon className="w-5 h-5" />
             </button>
           </form>
+        </div>
+
+        <div className="space-y-3 mt-20 relative">
+          <button
+            onClick={handleSignOut}
+            className="absolute bottom-0 right-0 text-left px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/20 hover:text-red-300 transition border border-red-500/30 hover:border-red-500/50 font-semibold"
+          >
+            Sign Out
+          </button>
         </div>
 
       </div>

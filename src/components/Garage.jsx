@@ -12,7 +12,7 @@ const Garage = () => {
   const [coverImages, setCoverImages] = useState({});
   const [loading, setLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
-  const [stats, setStats] = useState({ totalMileage: 0, totalValue: 0 });
+  const [stats, setStats] = useState({ totalMileage: 0, totalMaintenanceCosts: 0 });
 
   useEffect(() => {
     setIsVisible(true);
@@ -32,7 +32,24 @@ const Garage = () => {
         setUserCars(data || []);
         // Calculate stats
         const totalMileage = (data || []).reduce((sum, car) => sum + (Number(car.current_mileage) || 0), 0);
-        setStats({ totalMileage, totalValue: data?.length || 0 });
+        
+        // Fetch maintenance logs for all vehicles
+        if (data && data.length > 0) {
+          const carIds = data.map(car => car.id);
+          const { data: logsData, error: logsError } = await supabase
+            .from('vehicle_logs')
+            .select('cost')
+            .in('vehicle_id', carIds);
+
+          if (!logsError && logsData) {
+            const totalMaintenanceCosts = logsData.reduce((sum, log) => sum + (Number(log.cost) || 0), 0);
+            setStats({ totalMileage, totalMaintenanceCosts });
+          } else {
+            setStats({ totalMileage, totalMaintenanceCosts: 0 });
+          }
+        } else {
+          setStats({ totalMileage, totalMaintenanceCosts: 0 });
+        }
       }
       setLoading(false);
     };
@@ -140,9 +157,9 @@ const Garage = () => {
                 </div>
                 <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50 col-span-2 md:col-span-1">
                   <div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-                    {userCars.filter(car => car.for_sale).length}
+                    ${stats.totalMaintenanceCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
-                  <div className="text-gray-400 text-sm mt-1">For Sale</div>
+                  <div className="text-gray-400 text-sm mt-1">Total Maintenance</div>
                 </div>
               </div>
             )}

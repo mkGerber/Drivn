@@ -40,8 +40,8 @@ const Navbar = () => {
               to="/garage"
               className={`px-4 py-2 rounded-lg font-semibold transition-all ${
                 isActive('/garage')
-                  ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg shadow-red-500/50'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                  ? 'bg-gradient-to-r from-red-500 to-orange-500 !text-white shadow-lg shadow-red-500/50'
+                  : '!text-gray-300 hover:text-white hover:bg-gray-800'
               }`}
             >
               My Garage
@@ -50,8 +50,8 @@ const Navbar = () => {
               to="/explore"
               className={`px-4 py-2 rounded-lg font-semibold transition-all ${
                 isActive('/explore')
-                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/50'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 !text-white shadow-lg shadow-blue-500/50'
+                  : '!text-gray-300 hover:text-white hover:bg-gray-800'
               }`}
             >
               Explore
@@ -60,8 +60,8 @@ const Navbar = () => {
               to="/marketplace"
               className={`px-4 py-2 rounded-lg font-semibold transition-all ${
                 isActive('/marketplace')
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 !text-white shadow-lg shadow-green-500/50'
+                  : '!text-gray-300 hover:text-white hover:bg-gray-800'
               }`}
             >
               Marketplace
@@ -72,8 +72,8 @@ const Navbar = () => {
                 to="/profile"
                 className={`px-4 py-2 rounded-lg font-semibold transition-all ${
                   isActive('/profile')
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50'
-                    : 'bg-gradient-to-r from-red-500 to-orange-500 text-white hover:opacity-90 shadow-lg shadow-red-500/50'
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 !text-white shadow-lg shadow-purple-500/50'
+                    : '!text-gray-300 hover:text-white hover:bg-gray-800'
                 }`}
               >
                 Profile

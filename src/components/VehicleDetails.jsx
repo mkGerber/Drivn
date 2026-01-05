@@ -321,11 +321,33 @@ const VehicleDetails = () => {
       };
       const { data, error } = await supabase.from("vehicle_logs").insert([newLogData]).single();
 
+      
+
       if (error) {
         console.error("Error adding maintenance log:", error);
       } else {
         console.log("Maintenance log added successfully:", data);
       }
+
+      if (logMileage > vehicle.current_mileage) {
+        const confirmed = window.confirm("This will update the current mileage of the vehicle. Are you sure you want to do this?");
+        if (confirmed) {
+          const { data: updatedData, error: updateError} = await supabase
+            .from('cars')
+            .update({
+              current_mileage: logMileage
+            })
+            .eq('id', id);
+
+          if (updateError) {
+            console.error("Error updating current mileage:", updateError);
+          } else {
+            setMileage(logMileage);
+            console.log("Current mileage updated successfully:", updatedData);
+          }
+        }   
+      }
+      
       setLogUploading(false);
       setLogTitle("");
       setLogDescription("");
