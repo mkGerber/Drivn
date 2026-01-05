@@ -4,7 +4,7 @@ import Navbar from './Navbar';
 import { useParams, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { UserAuth } from '../context/AuthContext';
-import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon, ChatBubbleLeftIcon, ArrowUpIcon, ArrowDownIcon, QuestionMarkCircleIcon, ArrowRightIcon} from '@heroicons/react/24/outline';
+import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon, ChatBubbleLeftIcon, ArrowUpIcon, ArrowDownIcon, QuestionMarkCircleIcon, ArrowRightIcon, PlusIcon, ChevronDownIcon, ChevronUpIcon} from '@heroicons/react/24/outline';
 import {ArrowUpIcon as ArrowUpSolid, ArrowDownIcon as ArrowDownSolid} from '@heroicons/react/24/solid';
 
 
@@ -96,6 +96,52 @@ const VehicleDetails = () => {
   const [editedColor, setEditedColor] = useState("");
   const [editedLicensePlate, setEditedLicensePlate] = useState("");
   const [editedVin, setEditedVin] = useState("");
+  
+  // Toggle between Vehicle Info and Wheels Info
+  const [showWheelsInfo, setShowWheelsInfo] = useState(false);
+  
+  // Wheels and Tires Management
+  const [wheelSetups, setWheelSetups] = useState([]);
+  const [tireSetups, setTireSetups] = useState({}); // { wheelSetupId: [tireSetups] }
+  const [showAddWheelForm, setShowAddWheelForm] = useState(false);
+  const [showAddTireForm, setShowAddTireForm] = useState(null); // wheelSetupId when showing form
+  const [expandedWheelSetup, setExpandedWheelSetup] = useState(null); // wheelSetupId that's expanded
+  const [editingWheelSetup, setEditingWheelSetup] = useState(null);
+  const [editingTireSetup, setEditingTireSetup] = useState(null);
+  
+  // Wheel form state
+  const [wheelName, setWheelName] = useState('');
+  const [wheelIsActive, setWheelIsActive] = useState(false);
+  const [isWheelStaggered, setIsWheelStaggered] = useState(false);
+  const [frontDiameter, setFrontDiameter] = useState('');
+  const [frontWidth, setFrontWidth] = useState('');
+  const [frontOffset, setFrontOffset] = useState('');
+  const [frontBore, setFrontBore] = useState('');
+  const [rearDiameter, setRearDiameter] = useState('');
+  const [rearWidth, setRearWidth] = useState('');
+  const [rearOffset, setRearOffset] = useState('');
+  const [rearBore, setRearBore] = useState('');
+  const [boltPattern, setBoltPattern] = useState('');
+  const [wheelBrand, setWheelBrand] = useState('');
+  const [wheelModel, setWheelModel] = useState('');
+  const [wheelColor, setWheelColor] = useState('');
+  const [wheelMaterial, setWheelMaterial] = useState('');
+  const [wheelNotes, setWheelNotes] = useState('');
+  
+  // Tire form state
+  const [tireName, setTireName] = useState('');
+  const [tireIsActive, setTireIsActive] = useState(false);
+  const [isTireStaggered, setIsTireStaggered] = useState(false);
+  const [tireBrand, setTireBrand] = useState('');
+  const [tireModel, setTireModel] = useState('');
+  const [tireType, setTireType] = useState('');
+  const [tireFrontWidth, setTireFrontWidth] = useState('');
+  const [tireFrontAspectRatio, setTireFrontAspectRatio] = useState('');
+  const [tireFrontDiameter, setTireFrontDiameter] = useState('');
+  const [tireRearWidth, setTireRearWidth] = useState('');
+  const [tireRearAspectRatio, setTireRearAspectRatio] = useState('');
+  const [tireRearDiameter, setTireRearDiameter] = useState('');
+  const [tireNotes, setTireNotes] = useState('');
   
   // Visibility toggles for info fields
   const [showMileage, setShowMileage] = useState(true);
@@ -212,6 +258,316 @@ const VehicleDetails = () => {
       
   };
 
+  /* ------------------ FETCH WHEELS & TIRES ------------------ */
+  const getWheelSetups = async () => {
+    if (!id) return;
+    
+    const { data, error } = await supabase
+      .from('wheel_setups')
+      .select('*')
+      .eq('car_id', id)
+      .order('created_at', { ascending: false });
+    
+    if (!error && data) {
+      // Sort so active setups come first, then by created_at descending
+      const sorted = [...(data || [])].sort((a, b) => {
+        if (a.is_active && !b.is_active) return -1;
+        if (!a.is_active && b.is_active) return 1;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+      setWheelSetups(sorted);
+      
+      // Fetch tire setups for each wheel setup
+      const tireMap = {};
+      for (const wheelSetup of data) {
+        const { data: tireData } = await supabase
+          .from('tire_setups')
+          .select('*')
+          .eq('wheel_setup_id', wheelSetup.id)
+          .order('created_at', { ascending: false });
+        
+        tireMap[wheelSetup.id] = tireData || [];
+      }
+      setTireSetups(tireMap);
+    }
+  };
+
+  /* ------------------ WHEEL SETUP FUNCTIONS ------------------ */
+  const handleEditWheelSetup = (wheelSetup) => {
+    setEditingWheelSetup(wheelSetup.id);
+    setWheelName(wheelSetup.name || '');
+    setWheelIsActive(wheelSetup.is_active || false);
+    setFrontDiameter(wheelSetup.front_diameter || '');
+    setFrontWidth(wheelSetup.front_width || '');
+    setFrontOffset(wheelSetup.front_offset || '');
+    setFrontBore(wheelSetup.front_bore || '');
+    setRearDiameter(wheelSetup.rear_diameter || '');
+    setRearWidth(wheelSetup.rear_width || '');
+    setRearOffset(wheelSetup.rear_offset || '');
+    setRearBore(wheelSetup.rear_bore || '');
+    setBoltPattern(wheelSetup.bolt_pattern || '');
+    setWheelBrand(wheelSetup.wheel_brand || '');
+    setWheelModel(wheelSetup.wheel_model || '');
+    setWheelColor(wheelSetup.wheel_color || '');
+    setWheelMaterial(wheelSetup.wheel_material || '');
+    setWheelNotes(wheelSetup.notes || '');
+    
+    // Check if staggered (front and rear are different)
+    const isStaggered = (
+      wheelSetup.front_diameter !== wheelSetup.rear_diameter ||
+      wheelSetup.front_width !== wheelSetup.rear_width ||
+      wheelSetup.front_offset !== wheelSetup.rear_offset ||
+      wheelSetup.front_bore !== wheelSetup.rear_bore
+    );
+    setIsWheelStaggered(isStaggered);
+  };
+
+  const saveWheelSetup = async (e) => {
+    e.preventDefault();
+    if (!session?.user?.id) return;
+
+    const toNumberOrNull = (value) => {
+      if (value === '' || value === null || value === undefined) return null;
+      const num = parseFloat(value);
+      return isNaN(num) ? null : num;
+    };
+
+    const toIntOrNull = (value) => {
+      if (value === '' || value === null || value === undefined) return null;
+      const num = parseInt(value);
+      return isNaN(num) ? null : num;
+    };
+
+    // If not staggered, copy front values to rear
+    const finalRearDiameter = isWheelStaggered ? toIntOrNull(rearDiameter) : toIntOrNull(frontDiameter);
+    const finalRearWidth = isWheelStaggered ? toNumberOrNull(rearWidth) : toNumberOrNull(frontWidth);
+    const finalRearOffset = isWheelStaggered ? toNumberOrNull(rearOffset) : toNumberOrNull(frontOffset);
+    const finalRearBore = isWheelStaggered ? toNumberOrNull(rearBore) : toNumberOrNull(frontBore);
+
+    const wheelData = {
+      car_id: id,
+      user_id: session.user.id,
+      name: wheelName || null,
+      is_active: wheelIsActive,
+      front_diameter: toIntOrNull(frontDiameter),
+      front_width: toNumberOrNull(frontWidth),
+      front_offset: toNumberOrNull(frontOffset),
+      front_bore: toNumberOrNull(frontBore),
+      rear_diameter: finalRearDiameter,
+      rear_width: finalRearWidth,
+      rear_offset: finalRearOffset,
+      rear_bore: finalRearBore,
+      bolt_pattern: boltPattern || null,
+      wheel_brand: wheelBrand || null,
+      wheel_model: wheelModel || null,
+      wheel_color: wheelColor || null,
+      wheel_material: wheelMaterial || null,
+      notes: wheelNotes || null
+    };
+
+    if (editingWheelSetup) {
+      // Update existing
+      const { error } = await supabase
+        .from('wheel_setups')
+        .update(wheelData)
+        .eq('id', editingWheelSetup);
+      
+      if (error) {
+        console.error('Error updating wheel setup:', error);
+        alert('Failed to update wheel setup');
+      } else {
+        setEditingWheelSetup(null);
+        getWheelSetups();
+      }
+    } else {
+      // Create new
+      const { error } = await supabase
+        .from('wheel_setups')
+        .insert([{ ...wheelData, id: uuidv4() }]);
+      
+      if (error) {
+        console.error('Error creating wheel setup:', error);
+        alert('Failed to create wheel setup');
+      } else {
+        setShowAddWheelForm(false);
+        getWheelSetups();
+        // Reset form
+        setWheelName(''); setWheelIsActive(false); setIsWheelStaggered(false);
+        setFrontDiameter(''); setFrontWidth(''); setFrontOffset(''); setFrontBore('');
+        setRearDiameter(''); setRearWidth(''); setRearOffset(''); setRearBore('');
+        setBoltPattern(''); setWheelBrand(''); setWheelModel(''); setWheelColor(''); setWheelMaterial(''); setWheelNotes('');
+      }
+    }
+  };
+
+  const deleteWheelSetup = async (wheelSetupId) => {
+    if (!window.confirm('Are you sure you want to delete this wheel setup? This will also delete all associated tire setups.')) return;
+
+    // Delete tire setups first
+    await supabase
+      .from('tire_setups')
+      .delete()
+      .eq('wheel_setup_id', wheelSetupId);
+
+    // Delete wheel setup
+    const { error } = await supabase
+      .from('wheel_setups')
+      .delete()
+      .eq('id', wheelSetupId);
+
+    if (error) {
+      console.error('Error deleting wheel setup:', error);
+      alert('Failed to delete wheel setup');
+    } else {
+      getWheelSetups();
+    }
+  };
+
+  const setActiveWheelSetup = async (wheelSetupId) => {
+    // Set all to inactive first
+    await supabase
+      .from('wheel_setups')
+      .update({ is_active: false })
+      .eq('car_id', id);
+
+    // Set selected to active
+    const { error } = await supabase
+      .from('wheel_setups')
+      .update({ is_active: true })
+      .eq('id', wheelSetupId);
+
+    if (!error) {
+      getWheelSetups();
+    }
+  };
+
+  /* ------------------ TIRE SETUP FUNCTIONS ------------------ */
+  const handleEditTireSetup = (tireSetup) => {
+    setEditingTireSetup(tireSetup.id);
+    setTireName(tireSetup.name || '');
+    setTireIsActive(tireSetup.is_active || false);
+    setTireBrand(tireSetup.tire_brand || '');
+    setTireModel(tireSetup.tire_model || '');
+    setTireType(tireSetup.tire_type || '');
+    setTireFrontWidth(tireSetup.front_width || '');
+    setTireFrontAspectRatio(tireSetup.front_aspect_ratio || '');
+    setTireFrontDiameter(tireSetup.front_diameter || '');
+    setTireRearWidth(tireSetup.rear_width || '');
+    setTireRearAspectRatio(tireSetup.rear_aspect_ratio || '');
+    setTireRearDiameter(tireSetup.rear_diameter || '');
+    setTireNotes(tireSetup.notes || '');
+    
+    // Check if staggered (front and rear are different)
+    const isStaggered = (
+      tireSetup.front_width !== tireSetup.rear_width ||
+      tireSetup.front_aspect_ratio !== tireSetup.rear_aspect_ratio ||
+      tireSetup.front_diameter !== tireSetup.rear_diameter
+    );
+    setIsTireStaggered(isStaggered);
+  };
+
+  const saveTireSetup = async (e, wheelSetupId) => {
+    e.preventDefault();
+    if (!session?.user?.id) return;
+
+    const toIntOrNull = (value) => {
+      if (value === '' || value === null || value === undefined) return null;
+      const num = parseInt(value);
+      return isNaN(num) ? null : num;
+    };
+
+    // If not staggered, copy front values to rear
+    const finalRearWidth = isTireStaggered ? toIntOrNull(tireRearWidth) : toIntOrNull(tireFrontWidth);
+    const finalRearAspectRatio = isTireStaggered ? toIntOrNull(tireRearAspectRatio) : toIntOrNull(tireFrontAspectRatio);
+    const finalRearDiameter = isTireStaggered ? toIntOrNull(tireRearDiameter) : toIntOrNull(tireFrontDiameter);
+
+    const tireData = {
+      wheel_setup_id: wheelSetupId,
+      user_id: session.user.id,
+      name: tireName || null,
+      is_active: tireIsActive,
+      tire_brand: tireBrand || null,
+      tire_model: tireModel || null,
+      tire_type: tireType || null,
+      front_width: toIntOrNull(tireFrontWidth),
+      front_aspect_ratio: toIntOrNull(tireFrontAspectRatio),
+      front_diameter: toIntOrNull(tireFrontDiameter),
+      rear_width: finalRearWidth,
+      rear_aspect_ratio: finalRearAspectRatio,
+      rear_diameter: finalRearDiameter,
+      notes: tireNotes || null
+    };
+
+    if (editingTireSetup) {
+      // Update existing
+      const { error } = await supabase
+        .from('tire_setups')
+        .update(tireData)
+        .eq('id', editingTireSetup);
+      
+      if (error) {
+        console.error('Error updating tire setup:', error);
+        alert('Failed to update tire setup');
+      } else {
+        setEditingTireSetup(null);
+        getWheelSetups();
+      }
+    } else {
+      // Create new
+      const { error } = await supabase
+        .from('tire_setups')
+        .insert([{ ...tireData, id: uuidv4() }]);
+      
+      if (error) {
+        console.error('Error creating tire setup:', error);
+        alert('Failed to create tire setup');
+      } else {
+        setShowAddTireForm(null);
+        getWheelSetups();
+        // Reset form
+        setTireName(''); setTireIsActive(false); setIsTireStaggered(false);
+        setTireBrand(''); setTireModel(''); setTireType('');
+        setTireFrontWidth(''); setTireFrontAspectRatio(''); setTireFrontDiameter('');
+        setTireRearWidth(''); setTireRearAspectRatio(''); setTireRearDiameter('');
+        setTireNotes('');
+      }
+    }
+  };
+
+  const deleteTireSetup = async (tireSetupId) => {
+    if (!window.confirm('Are you sure you want to delete this tire setup?')) return;
+
+    const { error } = await supabase
+      .from('tire_setups')
+      .delete()
+      .eq('id', tireSetupId);
+
+    if (error) {
+      console.error('Error deleting tire setup:', error);
+      alert('Failed to delete tire setup');
+    } else {
+      getWheelSetups();
+    }
+  };
+
+  const setActiveTireSetup = async (tireSetupId, wheelSetupId) => {
+    // Set all tire setups for this wheel setup to inactive
+    await supabase
+      .from('tire_setups')
+      .update({ is_active: false })
+      .eq('wheel_setup_id', wheelSetupId);
+
+    // Set selected to active
+    const { error } = await supabase
+      .from('tire_setups')
+      .update({ is_active: true })
+      .eq('id', tireSetupId);
+
+    if (!error) {
+      getWheelSetups();
+    }
+  };
+
   useEffect(() => {
     const fetchVehicle = async () => {
       const { data } = await supabase
@@ -250,6 +606,7 @@ const VehicleDetails = () => {
     fetchVehicle();
     getImages();
     getLogs();
+    getWheelSetups();
   }, [id]);
 
   useEffect(() => {
@@ -688,7 +1045,7 @@ const VehicleDetails = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white -mt-0">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-6 py-4 md:py-8">
+      <div className="w-full px-4 md:px-8 lg:px-12 py-4 md:py-8">
         {/* Sell Vehicle Modal */}
         {showSellForm && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -864,13 +1221,13 @@ const VehicleDetails = () => {
 
 
         {/* MAIN LAYOUT: Content + Sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           {/* LEFT COLUMN - Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-        {/* MAIN SECTION */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="xl:col-span-8 space-y-6">
+          {/* MAIN SECTION - Image and Info */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* CAROUSEL */}
-          <div className="relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-2xl border border-gray-700/50 h-fit self-start">
+          <div className="lg:col-span-1 relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-2xl border border-gray-700/50 h-fit self-start">
             {imageUrls.length > 0 ? (
               <>
                 <img
@@ -937,22 +1294,656 @@ const VehicleDetails = () => {
             )}
           </div>
 
-          {/* VEHICLE INFO */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-gray-700/50">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-white">Vehicle Information</h3>
-              {canEdit && !editingVehicleInfo && (
-                <button
-                  onClick={handleEditVehicleInfo}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition text-sm font-medium"
-                >
-                  <PencilSquareIcon className="w-4 h-4" />
-                  Edit
-                </button>
-              )}
+          {/* VEHICLE INFO / WHEELS INFO */}
+          <div className="lg:col-span-2">
+            {/* Tabs */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setShowWheelsInfo(false)}
+                className={`px-6 py-2 rounded-t-lg transition font-medium ${
+                  !showWheelsInfo
+                    ? 'bg-gray-800/50 backdrop-blur-sm text-white border-t border-l border-r border-gray-700/50'
+                    : 'bg-gray-900/30 text-gray-400 hover:text-white border-t border-l border-r border-transparent'
+                }`}
+              >
+                Car Info
+              </button>
+              <button
+                onClick={() => setShowWheelsInfo(true)}
+                className={`px-6 py-2 rounded-t-lg transition font-medium ${
+                  showWheelsInfo
+                    ? 'bg-gray-800/50 backdrop-blur-sm text-white border-t border-l border-r border-gray-700/50'
+                    : 'bg-gray-900/30 text-gray-400 hover:text-white border-t border-l border-r border-transparent'
+                }`}
+              >
+                Wheels
+              </button>
             </div>
 
-            {!editingVehicleInfo ? (
+            {/* Content Card */}
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-b-2xl rounded-tr-2xl p-6 shadow-xl border border-gray-700/50 border-t-0">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-white">
+                  {showWheelsInfo ? 'Wheels Information' : 'Vehicle Information'}
+                </h3>
+                {canEdit && !editingVehicleInfo && !showWheelsInfo && (
+                  <button
+                    onClick={handleEditVehicleInfo}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition text-sm font-medium"
+                  >
+                    <PencilSquareIcon className="w-4 h-4" />
+                    Edit
+                  </button>
+                )}
+              </div>
+
+            {showWheelsInfo ? (
+              <div className="space-y-4">
+                {/* Add Wheel Setup Button */}
+                {canEdit && !showAddWheelForm && !editingWheelSetup && (
+                  <button
+                    onClick={() => {
+                      setShowAddWheelForm(true);
+                      // Reset form
+                      setWheelName('');
+                      setWheelIsActive(false);
+                      setIsWheelStaggered(false);
+                      setFrontDiameter(''); setFrontWidth(''); setFrontOffset(''); setFrontBore('');
+                      setRearDiameter(''); setRearWidth(''); setRearOffset(''); setRearBore('');
+                      setBoltPattern(''); setWheelBrand(''); setWheelModel(''); setWheelColor(''); setWheelMaterial(''); setWheelNotes('');
+                    }}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg hover:opacity-90 transition font-semibold flex items-center justify-center gap-2"
+                  >
+                    <PlusIcon className="w-5 h-5" />
+                    Add Wheel Setup
+                  </button>
+                )}
+
+                {/* Add/Edit Wheel Setup Form */}
+                {(showAddWheelForm || editingWheelSetup) && canEdit && (
+                  <form onSubmit={saveWheelSetup} className="bg-gray-900/50 rounded-lg p-6 border border-gray-700/50 space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="text-lg font-bold text-white">
+                        {editingWheelSetup ? 'Edit Wheel Setup' : 'Add Wheel Setup'}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddWheelForm(false);
+                          setEditingWheelSetup(null);
+                          // Reset form
+                          setWheelName('');
+                          setWheelIsActive(false);
+                          setIsWheelStaggered(false);
+                          setFrontDiameter(''); setFrontWidth(''); setFrontOffset(''); setFrontBore('');
+                          setRearDiameter(''); setRearWidth(''); setRearOffset(''); setRearBore('');
+                          setBoltPattern(''); setWheelBrand(''); setWheelModel(''); setWheelColor(''); setWheelMaterial(''); setWheelNotes('');
+                        }}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        <XCircleIcon className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Setup Name
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                          value={wheelName}
+                          onChange={(e) => setWheelName(e.target.value)}
+                          placeholder="e.g., Summer Wheels, Track Setup"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2 flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={wheelIsActive}
+                          onChange={(e) => setWheelIsActive(e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        <label className="text-sm text-gray-300">Set as active setup</label>
+                      </div>
+
+                      <div className="md:col-span-2 flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isWheelStaggered}
+                          onChange={(e) => {
+                            setIsWheelStaggered(e.target.checked);
+                            // If unchecking staggered, copy front to rear
+                            if (!e.target.checked) {
+                              setRearDiameter(frontDiameter);
+                              setRearWidth(frontWidth);
+                              setRearOffset(frontOffset);
+                              setRearBore(frontBore);
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <label className="text-sm text-gray-300">Staggered setup (different front/rear sizes)</label>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <h5 className="text-md font-semibold text-white mb-3">
+                          {isWheelStaggered ? 'Front Wheels' : 'Wheel Specifications'}
+                        </h5>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Diameter (inches)</label>
+                        <input type="number" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={frontDiameter} onChange={(e) => setFrontDiameter(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Width</label>
+                        <input type="number" step="0.5" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={frontWidth} onChange={(e) => setFrontWidth(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Offset</label>
+                        <input type="number" step="0.5" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={frontOffset} onChange={(e) => setFrontOffset(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Bore</label>
+                        <input type="number" step="0.1" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={frontBore} onChange={(e) => setFrontBore(e.target.value)} />
+                      </div>
+
+                      {isWheelStaggered && (
+                        <>
+                          <div className="md:col-span-2">
+                            <h5 className="text-md font-semibold text-white mb-3 mt-4">Rear Wheels</h5>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Diameter (inches)</label>
+                            <input type="number" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={rearDiameter} onChange={(e) => setRearDiameter(e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Width</label>
+                            <input type="number" step="0.5" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={rearWidth} onChange={(e) => setRearWidth(e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Offset</label>
+                            <input type="number" step="0.5" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={rearOffset} onChange={(e) => setRearOffset(e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Bore</label>
+                            <input type="number" step="0.1" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={rearBore} onChange={(e) => setRearBore(e.target.value)} />
+                          </div>
+                        </>
+                      )}
+
+                      <div className="md:col-span-2">
+                        <h5 className="text-md font-semibold text-white mb-3 mt-4">Wheel Details</h5>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Bolt Pattern</label>
+                        <input type="text" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={boltPattern} onChange={(e) => setBoltPattern(e.target.value)} placeholder="e.g., 5x114.3" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Brand</label>
+                        <input type="text" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={wheelBrand} onChange={(e) => setWheelBrand(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Model</label>
+                        <input type="text" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={wheelModel} onChange={(e) => setWheelModel(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Color</label>
+                        <input type="text" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={wheelColor} onChange={(e) => setWheelColor(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Material</label>
+                        <input type="text" className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={wheelMaterial} onChange={(e) => setWheelMaterial(e.target.value)} placeholder="e.g., Forged, Cast" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
+                        <textarea rows={3} className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" value={wheelNotes} onChange={(e) => setWheelNotes(e.target.value)} />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddWheelForm(false);
+                          setEditingWheelSetup(null);
+                        }}
+                        className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-semibold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg hover:opacity-90 transition font-semibold"
+                      >
+                        {editingWheelSetup ? 'Save Changes' : 'Add Setup'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Wheel Setups List */}
+                {wheelSetups.length === 0 && !showAddWheelForm && !editingWheelSetup && (
+                  <div className="text-center py-8 text-gray-400">
+                    <p>No wheel setups yet. Add your first setup to get started!</p>
+                  </div>
+                )}
+
+                {wheelSetups.map((wheelSetup) => {
+                  const isExpanded = expandedWheelSetup === wheelSetup.id;
+                  const setupTireSetups = tireSetups[wheelSetup.id] || [];
+                  
+                  return (
+                    <div key={wheelSetup.id} className="bg-gray-900/50 rounded-lg border border-gray-700/50 overflow-hidden">
+                      {/* Wheel Setup Header */}
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                              <h4 className="text-base font-semibold text-white">
+                                {wheelSetup.name || 'Unnamed Setup'}
+                              </h4>
+                              {wheelSetup.is_active && (
+                                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-semibold rounded flex-shrink-0">
+                                  ACTIVE
+                                </span>
+                              )}
+                            </div>
+                            
+                            {/* Clean Info Display */}
+                            <div className="space-y-2.5 text-sm">
+                              {/* Size Display */}
+                              {wheelSetup.front_diameter && (() => {
+                                const isStaggered = (
+                                  wheelSetup.front_diameter !== wheelSetup.rear_diameter ||
+                                  wheelSetup.front_width !== wheelSetup.rear_width ||
+                                  wheelSetup.front_offset !== wheelSetup.rear_offset ||
+                                  wheelSetup.front_bore !== wheelSetup.rear_bore
+                                );
+                                
+                                if (!isStaggered && wheelSetup.rear_diameter) {
+                                  // Non-staggered: show combined
+                                  return (
+                                    <div className="flex items-baseline gap-3">
+                                      <span className="text-gray-400 text-sm font-medium w-32 flex-shrink-0">Size:</span>
+                                      <span className="text-white font-semibold">
+                                        {wheelSetup.front_diameter}" × {wheelSetup.front_width || '?'}"
+                                        {wheelSetup.front_offset && ` ET${wheelSetup.front_offset}`}
+                                      </span>
+                                    </div>
+                                  );
+                                } else {
+                                  // Staggered: show separately
+                                  return (
+                                    <>
+                                      {wheelSetup.front_diameter && (
+                                        <div className="flex items-baseline gap-3">
+                                          <span className="text-gray-400 text-sm font-medium w-32 flex-shrink-0">Front:</span>
+                                          <span className="text-white font-semibold">
+                                            {wheelSetup.front_diameter}" × {wheelSetup.front_width || '?'}"
+                                            {wheelSetup.front_offset && ` ET${wheelSetup.front_offset}`}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {wheelSetup.rear_diameter && (
+                                        <div className="flex items-baseline gap-3">
+                                          <span className="text-gray-400 text-sm font-medium w-32 flex-shrink-0">Rear:</span>
+                                          <span className="text-white font-semibold">
+                                            {wheelSetup.rear_diameter}" × {wheelSetup.rear_width || '?'}"
+                                            {wheelSetup.rear_offset && ` ET${wheelSetup.rear_offset}`}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                }
+                              })()}
+                              
+                              {/* Other Details */}
+                              {wheelSetup.bolt_pattern && (
+                                <div className="flex items-baseline gap-3">
+                                  <span className="text-gray-400 text-sm font-medium w-32 flex-shrink-0">Bolt Pattern:</span>
+                                  <span className="text-white font-semibold">{wheelSetup.bolt_pattern}</span>
+                                </div>
+                              )}
+                              
+                              {wheelSetup.wheel_brand && wheelSetup.wheel_model && (
+                                <div className="flex items-baseline gap-3">
+                                  <span className="text-gray-400 text-sm font-medium w-32 flex-shrink-0">Wheels:</span>
+                                  <span className="text-white font-semibold">{wheelSetup.wheel_brand} {wheelSetup.wheel_model}</span>
+                                </div>
+                              )}
+                              
+                              {wheelSetup.wheel_color && (
+                                <div className="flex items-baseline gap-3">
+                                  <span className="text-gray-400 text-sm font-medium w-32 flex-shrink-0">Color:</span>
+                                  <span className="text-white font-semibold capitalize">{wheelSetup.wheel_color}</span>
+                                </div>
+                              )}
+                              
+                              {wheelSetup.wheel_material && (
+                                <div className="flex items-baseline gap-3">
+                                  <span className="text-gray-400 text-sm font-medium w-32 flex-shrink-0">Material:</span>
+                                  <span className="text-white font-semibold">{wheelSetup.wheel_material}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {canEdit && (
+                              <>
+                                {!wheelSetup.is_active && (
+                                  <button
+                                    onClick={() => setActiveWheelSetup(wheelSetup.id)}
+                                    className="px-3 py-1.5 bg-blue-500/20 text-blue-400 text-xs font-medium rounded hover:bg-blue-500/30 transition"
+                                  >
+                                    Set Active
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleEditWheelSetup(wheelSetup)}
+                                  className="p-2 bg-gray-700 hover:bg-gray-600 rounded transition"
+                                >
+                                  <PencilSquareIcon className="w-4 h-4 text-white" />
+                                </button>
+                                <button
+                                  onClick={() => deleteWheelSetup(wheelSetup.id)}
+                                  className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded transition"
+                                >
+                                  <TrashIcon className="w-4 h-4 text-red-400" />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => setExpandedWheelSetup(isExpanded ? null : wheelSetup.id)}
+                              className="p-2 bg-gray-700 hover:bg-gray-600 rounded transition"
+                            >
+                              {isExpanded ? (
+                                <ChevronUpIcon className="w-4 h-4 text-white" />
+                              ) : (
+                                <ChevronDownIcon className="w-4 h-4 text-white" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Content - Tire Setups */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-700/50 p-4 space-y-3">
+                          <div className="flex items-center justify-between mb-3">
+                            <h5 className="text-sm font-semibold text-white">Tire Setups</h5>
+                            {canEdit && showAddTireForm !== wheelSetup.id && !editingTireSetup && (
+                              <button
+                                onClick={() => {
+                                  setShowAddTireForm(wheelSetup.id);
+                                  setTireName('');
+                                  setTireIsActive(false);
+                                  setIsTireStaggered(false);
+                                  setTireBrand(''); setTireModel(''); setTireType('');
+                                  setTireFrontWidth(''); setTireFrontAspectRatio(''); setTireFrontDiameter('');
+                                  setTireRearWidth(''); setTireRearAspectRatio(''); setTireRearDiameter('');
+                                  setTireNotes('');
+                                }}
+                                className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm rounded hover:opacity-90 transition font-medium flex items-center gap-2"
+                              >
+                                <PlusIcon className="w-4 h-4" />
+                                Add Tire Setup
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Add/Edit Tire Form */}
+                          {(showAddTireForm === wheelSetup.id || editingTireSetup) && canEdit && (
+                            <form onSubmit={(e) => saveTireSetup(e, wheelSetup.id)} className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50 space-y-4">
+                              <div className="flex justify-between items-center">
+                                <h6 className="text-sm font-bold text-white">
+                                  {editingTireSetup ? 'Edit Tire Setup' : 'Add Tire Setup'}
+                                </h6>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowAddTireForm(null);
+                                    setEditingTireSetup(null);
+                                    // Reset form
+                                    setTireName('');
+                                    setTireIsActive(false);
+                                    setIsTireStaggered(false);
+                                    setTireBrand(''); setTireModel(''); setTireType('');
+                                    setTireFrontWidth(''); setTireFrontAspectRatio(''); setTireFrontDiameter('');
+                                    setTireRearWidth(''); setTireRearAspectRatio(''); setTireRearDiameter('');
+                                    setTireNotes('');
+                                  }}
+                                  className="text-gray-400 hover:text-white"
+                                >
+                                  <XCircleIcon className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="md:col-span-2">
+                                  <label className="block text-xs font-medium text-gray-300 mb-1">Setup Name</label>
+                                  <input type="text" className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireName} onChange={(e) => setTireName(e.target.value)} />
+                                </div>
+                                <div className="md:col-span-2 flex items-center gap-2">
+                                  <input type="checkbox" checked={tireIsActive} onChange={(e) => setTireIsActive(e.target.checked)} className="w-4 h-4" />
+                                  <label className="text-xs text-gray-300">Set as active</label>
+                                </div>
+                                <div className="md:col-span-2 flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={isTireStaggered}
+                                    onChange={(e) => {
+                                      setIsTireStaggered(e.target.checked);
+                                      // If unchecking staggered, copy front to rear
+                                      if (!e.target.checked) {
+                                        setTireRearWidth(tireFrontWidth);
+                                        setTireRearAspectRatio(tireFrontAspectRatio);
+                                        setTireRearDiameter(tireFrontDiameter);
+                                      }
+                                    }}
+                                    className="w-4 h-4"
+                                  />
+                                  <label className="text-xs text-gray-300">Staggered setup (different front/rear sizes)</label>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-300 mb-1">Brand</label>
+                                  <input type="text" className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireBrand} onChange={(e) => setTireBrand(e.target.value)} />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-300 mb-1">Model</label>
+                                  <input type="text" className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireModel} onChange={(e) => setTireModel(e.target.value)} />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-300 mb-1">Type</label>
+                                  <input type="text" className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireType} onChange={(e) => setTireType(e.target.value)} placeholder="e.g., Summer, All-Season" />
+                                </div>
+                                <div className="md:col-span-2">
+                                  <h6 className="text-xs font-semibold text-white mb-2">
+                                    {isTireStaggered ? 'Front Tire' : 'Tire Specifications'}
+                                  </h6>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-300 mb-1">Width</label>
+                                  <input type="number" className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireFrontWidth} onChange={(e) => setTireFrontWidth(e.target.value)} />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-300 mb-1">Aspect Ratio</label>
+                                  <input type="number" className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireFrontAspectRatio} onChange={(e) => setTireFrontAspectRatio(e.target.value)} />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-300 mb-1">Diameter</label>
+                                  <input type="number" className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireFrontDiameter} onChange={(e) => setTireFrontDiameter(e.target.value)} />
+                                </div>
+                                {isTireStaggered && (
+                                  <>
+                                    <div className="md:col-span-2">
+                                      <h6 className="text-xs font-semibold text-white mb-2">Rear Tire</h6>
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-300 mb-1">Width</label>
+                                      <input type="number" className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireRearWidth} onChange={(e) => setTireRearWidth(e.target.value)} />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-300 mb-1">Aspect Ratio</label>
+                                      <input type="number" className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireRearAspectRatio} onChange={(e) => setTireRearAspectRatio(e.target.value)} />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-300 mb-1">Diameter</label>
+                                      <input type="number" className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireRearDiameter} onChange={(e) => setTireRearDiameter(e.target.value)} />
+                                    </div>
+                                  </>
+                                )}
+                                <div className="md:col-span-2">
+                                  <label className="block text-xs font-medium text-gray-300 mb-1">Notes</label>
+                                  <textarea rows={2} className="w-full p-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={tireNotes} onChange={(e) => setTireNotes(e.target.value)} />
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2 pt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowAddTireForm(null);
+                                    setEditingTireSetup(null);
+                                    // Reset form
+                                    setTireName('');
+                                    setTireIsActive(false);
+                                    setIsTireStaggered(false);
+                                    setTireBrand(''); setTireModel(''); setTireType('');
+                                    setTireFrontWidth(''); setTireFrontAspectRatio(''); setTireFrontDiameter('');
+                                    setTireRearWidth(''); setTireRearAspectRatio(''); setTireRearDiameter('');
+                                    setTireNotes('');
+                                  }}
+                                  className="flex-1 px-3 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition text-sm font-medium"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  className="flex-1 px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded hover:opacity-90 transition text-sm font-medium"
+                                >
+                                  {editingTireSetup ? 'Save' : 'Add'}
+                                </button>
+                              </div>
+                            </form>
+                          )}
+
+                          {/* Tire Setups List */}
+                          {setupTireSetups.length === 0 && showAddTireForm !== wheelSetup.id && !editingTireSetup && (
+                            <div className="text-center py-4 text-gray-500 text-sm">
+                              No tire setups yet
+                            </div>
+                          )}
+
+                          {setupTireSetups.map((tireSetup) => (
+                            <div key={tireSetup.id} className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h6 className="text-sm font-semibold text-white">
+                                      {tireSetup.name || 'Unnamed Tire Setup'}
+                                    </h6>
+                                    {tireSetup.is_active && (
+                                      <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-semibold rounded flex-shrink-0">
+                                        ACTIVE
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="space-y-2 text-sm">
+                                    {/* Size Display */}
+                                    {tireSetup.front_width && tireSetup.front_aspect_ratio && tireSetup.front_diameter && (() => {
+                                      const isStaggered = (
+                                        tireSetup.front_width !== tireSetup.rear_width ||
+                                        tireSetup.front_aspect_ratio !== tireSetup.rear_aspect_ratio ||
+                                        tireSetup.front_diameter !== tireSetup.rear_diameter
+                                      );
+                                      
+                                      if (!isStaggered && tireSetup.rear_width) {
+                                        // Non-staggered: show combined
+                                        return (
+                                          <div className="flex items-baseline gap-3">
+                                            <span className="text-gray-400 text-sm font-medium w-28 flex-shrink-0">Size:</span>
+                                            <span className="text-white font-semibold">
+                                              {tireSetup.front_width}/{tireSetup.front_aspect_ratio}R{tireSetup.front_diameter}
+                                            </span>
+                                          </div>
+                                        );
+                                      } else {
+                                        // Staggered: show separately
+                                        return (
+                                          <>
+                                            <div className="flex items-baseline gap-3">
+                                              <span className="text-gray-400 text-sm font-medium w-28 flex-shrink-0">Front:</span>
+                                              <span className="text-white font-semibold">
+                                                {tireSetup.front_width}/{tireSetup.front_aspect_ratio}R{tireSetup.front_diameter}
+                                              </span>
+                                            </div>
+                                            {tireSetup.rear_width && tireSetup.rear_aspect_ratio && tireSetup.rear_diameter && (
+                                              <div className="flex items-baseline gap-3">
+                                                <span className="text-gray-400 text-sm font-medium w-28 flex-shrink-0">Rear:</span>
+                                                <span className="text-white font-semibold">
+                                                  {tireSetup.rear_width}/{tireSetup.rear_aspect_ratio}R{tireSetup.rear_diameter}
+                                                </span>
+                                              </div>
+                                            )}
+                                          </>
+                                        );
+                                      }
+                                    })()}
+                                    
+                                    {/* Other Details */}
+                                    {tireSetup.tire_brand && tireSetup.tire_model && (
+                                      <div className="flex items-baseline gap-3">
+                                        <span className="text-gray-400 text-sm font-medium w-28 flex-shrink-0">Tire:</span>
+                                        <span className="text-white font-semibold">{tireSetup.tire_brand} {tireSetup.tire_model}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {tireSetup.tire_type && (
+                                      <div className="flex items-baseline gap-3">
+                                        <span className="text-gray-400 text-sm font-medium w-28 flex-shrink-0">Type:</span>
+                                        <span className="text-white font-semibold">{tireSetup.tire_type}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                {canEdit && (
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    {!tireSetup.is_active && (
+                                      <button
+                                        onClick={() => setActiveTireSetup(tireSetup.id, wheelSetup.id)}
+                                        className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-medium rounded hover:bg-blue-500/30 transition"
+                                      >
+                                        Set Active
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleEditTireSetup(tireSetup)}
+                                      className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded transition"
+                                    >
+                                      <PencilSquareIcon className="w-3.5 h-3.5 text-white" />
+                                    </button>
+                                    <button
+                                      onClick={() => deleteTireSetup(tireSetup.id)}
+                                      className="p-1.5 bg-red-500/20 hover:bg-red-500/30 rounded transition"
+                                    >
+                                      <TrashIcon className="w-3.5 h-3.5 text-red-400" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : !editingVehicleInfo ? (
               <div className="space-y-4">
                 {(() => {
                   const showMileage = vehicle.show_mileage !== false;
@@ -1221,7 +2212,9 @@ const VehicleDetails = () => {
                 </div>
               </form>
             )}
+            </div>
           </div>
+
         </div>
 
         {/* UPLOAD */}
@@ -1268,7 +2261,7 @@ const VehicleDetails = () => {
         )}
 
         {/* Top of maintenance log section */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-12 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-bold">Maintenance Logs</h2>
             {/* Toggle to hide gas logs */}
@@ -2073,12 +3066,11 @@ const VehicleDetails = () => {
           </div>
 
           {/* RIGHT COLUMN - Discussion & Q&A Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="xl:col-span-4 space-y-6">
             <DiscussionSection vehicleId={id} vehicleOwnerId={vehicle?.user_id} />
             <QASection vehicleId={id} vehicleOwnerId={vehicle?.user_id} />
           </div>
         </div>
-
       </div>
     </div>
   );
