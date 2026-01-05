@@ -331,7 +331,7 @@ const VehicleDetails = () => {
 
       if (logMileage > vehicle.current_mileage) {
         const confirmed = window.confirm("This will update the current mileage of the vehicle. Are you sure you want to do this?");
-        if (confirmed) {
+        if (!confirmed) return;
           const { data: updatedData, error: updateError} = await supabase
             .from('cars')
             .update({
@@ -342,10 +342,9 @@ const VehicleDetails = () => {
           if (updateError) {
             console.error("Error updating current mileage:", updateError);
           } else {
-            setMileage(logMileage);
             console.log("Current mileage updated successfully:", updatedData);
           }
-        }   
+         
       }
       
       setLogUploading(false);
