@@ -15,6 +15,8 @@ const Explore = () => {
   const [coverImages, setCoverImages] = useState({});
   const [isVisible, setIsVisible] = useState(false);
   const [stats, setStats] = useState({ totalMileage: 0, totalMaintenanceCosts: 0 });
+  const [sponsors, setSponsors] = useState([]);
+  const [randomizedSponsors, setRandomizedSponsors] = useState([]);
 
   // Filters / Sort
   const [search, setSearch] = useState('');
@@ -43,7 +45,6 @@ const Explore = () => {
       .select('*')
       .eq('public', true)
       .neq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
       .limit(20);
 
     if (error) {
@@ -121,6 +122,40 @@ const Explore = () => {
     }
   };
 
+  const incrementCarVisits = async (carId) => {
+    try {
+      // Get current visits count first
+      const { data: carData, error: fetchError } = await supabase
+        .from('cars')
+        .select('visits')
+        .eq('id', carId)
+        .single();
+      
+      if (!fetchError && carData) {
+        const currentVisits = carData.visits || 0;
+        await supabase
+          .from('cars')
+          .update({ visits: currentVisits + 1 })
+          .eq('id', carId);
+      }
+    } catch (error) {
+      console.error('Error incrementing car visits:', error);
+    }
+  };
+
+  const fetchSponsors = async () => {
+    const { data, error } = await supabase
+      .from('sponsors')
+      .select('*');
+
+    if (!error && data) {
+      setSponsors(data || []);
+      // Randomize sponsors
+      const shuffled = [...data].sort(() => Math.random() - 0.5);
+      setRandomizedSponsors(shuffled);
+    }
+  };
+
   useEffect(() => {
     setIsVisible(true);
   }, []);
@@ -129,6 +164,7 @@ const Explore = () => {
     if (!session) return;
     fetchVehicles();
     fetchCoverImages();
+    fetchSponsors();
   }, [session]);
 
   // Filter + sort logic
@@ -344,32 +380,12 @@ const Explore = () => {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {(() => {
               const items = [];
-              const adTemplates = [
-                {
-                  title: "Premium Car Parts",
-                  subtitle: "Upgrade Your Build",
-                  description: "Quality parts for enthusiasts",
-                  gradient: "from-blue-500 to-cyan-500"
-                },
-                {
-                  title: "Performance Tuning",
-                  subtitle: "Unlock Your Potential",
-                  description: "Expert tuning services",
-                  gradient: "from-purple-500 to-pink-500"
-                },
-                {
-                  title: "Custom Wheels",
-                  subtitle: "Stand Out",
-                  description: "Premium wheel selection",
-                  gradient: "from-orange-500 to-red-500"
-                },
-                {
-                  title: "Auto Detailing",
-                  subtitle: "Showroom Quality",
-                  description: "Professional detailing services",
-                  gradient: "from-green-500 to-emerald-500"
-                }
-              ];
+              
+              // Helper function to get a random sponsor (cycles through randomized list)
+              const getSponsorForIndex = (adIndex) => {
+                if (randomizedSponsors.length === 0) return null;
+                return randomizedSponsors[adIndex % randomizedSponsors.length];
+              };
 
               filteredVehicles.forEach((car, index) => {
                 // Add car card
@@ -377,6 +393,7 @@ const Explore = () => {
                   <Link
                     key={car.id}
                     to={`/vehicle/${car.id}`}
+                    onClick={() => incrementCarVisits(car.id)}
                     className={`transform transition-all duration-700 ${
                       isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
@@ -448,36 +465,49 @@ const Explore = () => {
                   </Link>
                 );
 
-                // Add ad card after every 5 cars
-                if ((index + 1) % 5 === 0) {
+                // Add sponsor ad card after every 5 cars
+                if ((index + 1) % 5 === 0 && randomizedSponsors.length > 0) {
                   const adIndex = Math.floor((index + 1) / 5) - 1;
-                  const ad = adTemplates[adIndex % adTemplates.length];
-                  items.push(
-                    <div
-                      key={`ad-${adIndex}`}
-                      className={`transform transition-all duration-700 ${
-                        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                      }`}
-                      style={{ transitionDelay: `${(index + 1) * 100}ms` }}
-                    >
-                      <div className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/20 cursor-pointer flex flex-col h-full">
+                  const sponsor = getSponsorForIndex(adIndex);
+                  
+                  if (sponsor) {
+                    // Ensure URL is absolute (starts with http:// or https://) if website_link exists
+                    const websiteUrl = sponsor.website_link 
+                      ? (sponsor.website_link.startsWith('http://') || sponsor.website_link.startsWith('https://')
+                        ? sponsor.website_link
+                        : `https://${sponsor.website_link}`)
+                      : null;
+                    
+                    const CardContent = (
+                      <div className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/20 flex flex-col h-full">
                         {/* Image Container */}
-                        <div className={`relative h-[300px] overflow-hidden bg-gradient-to-br ${ad.gradient} flex-shrink-0`}>
-                          <div className="absolute inset-0 bg-gradient-to-br from-gray-900/80 to-gray-800/80"></div>
-                          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                            <div className={`text-4xl font-extrabold bg-gradient-to-r ${ad.gradient} bg-clip-text text-transparent mb-2`}>
-                              {ad.title}
+                        <div className="relative h-[300px] overflow-hidden flex-shrink-0">
+                          {sponsor.image_url ? (
+                            <img
+                              src={sponsor.image_url}
+                              alt={sponsor.company}
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                              <div className="text-4xl font-extrabold text-white">
+                                {sponsor.company.charAt(0)}
+                              </div>
                             </div>
-                            <div className="text-xl font-semibold text-white mb-3">
-                              {ad.subtitle}
-                            </div>
-                            <div className="text-sm text-gray-300 mb-4">
-                              {ad.description}
-                            </div>
-                            <div className={`px-6 py-2 bg-gradient-to-r ${ad.gradient} rounded-lg text-white font-semibold text-sm`}>
-                              Learn More
+                          )}
+                          
+                          {/* Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          
+                          {/* Hover Text */}
+                          <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="flex items-center gap-2 text-white font-semibold">
+                              <span>{websiteUrl ? 'Visit Website' : 'Sponsored'}</span>
+                              {websiteUrl && <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                             </div>
                           </div>
+                          
+                          {/* AD Badge */}
                           <div className="absolute top-4 right-4">
                             <span className="bg-black/70 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-lg">
                               AD
@@ -487,32 +517,63 @@ const Explore = () => {
 
                         {/* Info Section */}
                         <div className="p-5 bg-gradient-to-b from-gray-800/50 to-gray-900/50 flex flex-col flex-grow">
-                          <h2 className="text-lg font-bold text-white mb-1">
-                            Sponsored
+                          <h2 className="text-lg font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">
+                            {sponsor.company}
                           </h2>
                           <p className="text-gray-400 text-sm mb-3 min-h-[1.25rem]">
-                            {ad.description}
+                            {sponsor.description || '\u00A0'}
                           </p>
 
                           {/* Stats Grid */}
                           <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700/50 mt-auto">
                             <div>
-                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Premium</div>
+                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Sponsored</div>
                               <div className="text-sm font-semibold text-white">
-                                Quality
+                                Content
                               </div>
                             </div>
                             <div>
                               <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Trusted</div>
                               <div className="text-sm font-semibold text-white">
-                                Service
+                                Partner
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
+                    );
+                    
+                    items.push(
+                      websiteUrl ? (
+                        <div
+                          key={`sponsor-${sponsor.id}-${adIndex}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('Sponsor click - URL:', websiteUrl);
+                            if (websiteUrl && websiteUrl !== '#') {
+                              window.open(websiteUrl, '_blank', 'noopener,noreferrer');
+                            }
+                          }}
+                          className={`transform transition-all duration-700 cursor-pointer ${
+                            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                          }`}
+                          style={{ transitionDelay: `${(index + 1) * 100}ms` }}
+                        >
+                          {CardContent}
+                        </div>
+                      ) : (
+                        <div
+                          key={`sponsor-${sponsor.id}-${adIndex}`}
+                          className={`transform transition-all duration-700 ${
+                            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                          }`}
+                          style={{ transitionDelay: `${(index + 1) * 100}ms` }}
+                        >
+                          {CardContent}
+                        </div>
+                      )
+                    );
+                  }
                 }
               });
 
