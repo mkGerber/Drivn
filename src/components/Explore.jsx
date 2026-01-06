@@ -382,9 +382,9 @@ const Explore = () => {
                     }`}
                     style={{ transitionDelay: `${index * 100}ms` }}
                   >
-                    <div className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-700/50 hover:border-red-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-500/20">
+                    <div className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-700/50 hover:border-red-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-500/20 flex flex-col h-full">
                       {/* Image Container */}
-                      <div className="relative h-[300px] overflow-hidden">
+                      <div className="relative h-[300px] overflow-hidden flex-shrink-0">
                         <img
                           src={coverImages[car.id] || notFound}
                           alt={`${car.make} ${car.model}`}
@@ -420,16 +420,16 @@ const Explore = () => {
                       </div>
 
                       {/* Info Section */}
-                      <div className="p-5 bg-gradient-to-b from-gray-800/50 to-gray-900/50">
+                      <div className="p-5 bg-gradient-to-b from-gray-800/50 to-gray-900/50 flex flex-col flex-grow">
                         <h2 className="text-lg font-bold text-white mb-1 group-hover:text-red-400 transition-colors">
                           {car.make} {car.model}
                         </h2>
-                        {car.trim && (
-                          <p className="text-gray-400 text-sm mb-3">{car.trim}</p>
-                        )}
+                        <p className="text-gray-400 text-sm mb-3 min-h-[1.25rem]">
+                          {car.trim || '\u00A0'}
+                        </p>
 
                         {/* Stats Grid */}
-                        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700/50">
+                        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700/50 mt-auto">
                           <div>
                             <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Mileage</div>
                             <div className="text-sm font-semibold text-white">
@@ -460,9 +460,9 @@ const Explore = () => {
                       }`}
                       style={{ transitionDelay: `${(index + 1) * 100}ms` }}
                     >
-                      <div className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/20 cursor-pointer">
+                      <div className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/20 cursor-pointer flex flex-col h-full">
                         {/* Image Container */}
-                        <div className={`relative h-[300px] overflow-hidden bg-gradient-to-br ${ad.gradient}`}>
+                        <div className={`relative h-[300px] overflow-hidden bg-gradient-to-br ${ad.gradient} flex-shrink-0`}>
                           <div className="absolute inset-0 bg-gradient-to-br from-gray-900/80 to-gray-800/80"></div>
                           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
                             <div className={`text-4xl font-extrabold bg-gradient-to-r ${ad.gradient} bg-clip-text text-transparent mb-2`}>
@@ -486,16 +486,16 @@ const Explore = () => {
                         </div>
 
                         {/* Info Section */}
-                        <div className="p-5 bg-gradient-to-b from-gray-800/50 to-gray-900/50">
+                        <div className="p-5 bg-gradient-to-b from-gray-800/50 to-gray-900/50 flex flex-col flex-grow">
                           <h2 className="text-lg font-bold text-white mb-1">
                             Sponsored
                           </h2>
-                          <p className="text-gray-400 text-sm mb-3">
+                          <p className="text-gray-400 text-sm mb-3 min-h-[1.25rem]">
                             {ad.description}
                           </p>
 
                           {/* Stats Grid */}
-                          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700/50">
+                          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700/50 mt-auto">
                             <div>
                               <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Premium</div>
                               <div className="text-sm font-semibold text-white">

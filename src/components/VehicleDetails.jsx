@@ -4,7 +4,7 @@ import Navbar from './Navbar';
 import { useParams, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { UserAuth } from '../context/AuthContext';
-import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon, ChatBubbleLeftIcon, ArrowUpIcon, ArrowDownIcon, QuestionMarkCircleIcon, ArrowRightIcon, PlusIcon, ChevronDownIcon, ChevronUpIcon} from '@heroicons/react/24/outline';
+import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon, ChatBubbleLeftIcon, ArrowUpIcon, ArrowDownIcon, QuestionMarkCircleIcon, ArrowRightIcon, PlusIcon, ChevronDownIcon, ChevronUpIcon, HandThumbDownIcon, HandThumbUpIcon} from '@heroicons/react/24/outline';
 import {ArrowUpIcon as ArrowUpSolid, ArrowDownIcon as ArrowDownSolid} from '@heroicons/react/24/solid';
 
 
@@ -151,6 +151,9 @@ const VehicleDetails = () => {
   const [showTrim, setShowTrim] = useState(true);
   const [showLicensePlate, setShowLicensePlate] = useState(true);
   const [showVin, setShowVin] = useState(true);
+  
+  // User's current vote (null, -1 for pass, 1 for approve)
+  const [userVote, setUserVote] = useState(null);
 
 
   
@@ -587,6 +590,21 @@ const VehicleDetails = () => {
         setShowTrim(data.show_trim !== false);
         setShowLicensePlate(data.show_license_plate !== false);
         setShowVin(data.show_vin !== false);
+        
+        // Recalculate vote score when vehicle is loaded to ensure accuracy
+        const { data: votes, error } = await supabase
+          .from('car_votes')
+          .select('value')
+          .eq('car_id', id);
+
+        if (!error && votes) {
+          const voteScore = votes.reduce((sum, vote) => sum + (vote.value || 0), 0);
+          await supabase
+            .from('cars')
+            .update({ vote_score: voteScore })
+            .eq('id', id);
+          setVehicle(prev => ({ ...prev, vote_score: voteScore }));
+        }
       }
       
       // Fetch owner profile
@@ -608,6 +626,15 @@ const VehicleDetails = () => {
     getLogs();
     getWheelSetups();
   }, [id]);
+
+  // Fetch user vote when component loads or id changes
+  useEffect(() => {
+    if (id && session) {
+      fetchUserVote(session);
+    } else {
+      setUserVote(null);
+    }
+  }, [id, session]);
 
   useEffect(() => {
     if (imageUrls.length && activeIndex >= imageUrls.length) {
@@ -1010,6 +1037,138 @@ const VehicleDetails = () => {
 };
 
 
+  // Fetch user's current vote
+  const fetchUserVote = async (session) => {
+    if (!session?.user?.id) {
+      setUserVote(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('car_votes')
+      .select('value')
+      .eq('car_id', id)
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error("Failed to fetch user vote: ", error);
+      return;
+    }
+
+    setUserVote(data?.value || null);
+  };
+
+  // Calculate and update vote score from car_votes table
+  const updateVoteScore = async () => {
+    const { data: votes, error } = await supabase
+      .from('car_votes')
+      .select('value')
+      .eq('car_id', id);
+
+    if (error) {
+      console.error("Failed to fetch votes for score calculation: ", error);
+      return;
+    }
+
+    // Sum all vote values (1 for approve, -1 for pass)
+    const voteScore = (votes || []).reduce((sum, vote) => sum + (vote.value || 0), 0);
+
+    // Update the cars table with the calculated score
+    const { error: updateError } = await supabase
+      .from('cars')
+      .update({ vote_score: voteScore })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error("Failed to update vote score: ", updateError);
+    } else {
+      // Update local state
+      setVehicle(prev => ({ ...prev, vote_score: voteScore }));
+    }
+  };
+
+  const passVote = async (e) => {
+    if (!session?.user?.id) return;
+    
+    // Prevent owner from voting on their own car
+    if (vehicle?.user_id === session.user.id) {
+      return;
+    }
+
+    const { data, error} = await supabase
+      .from('car_votes')
+      .upsert({
+        car_id: id,
+        user_id: session.user.id,
+        value: userVote === -1 ? null : -1
+      },
+      {
+        onConflict: 'car_id,user_id'
+      }
+      )
+
+    if (error) {
+      console.error("Failed to pass vote: ", error)
+      return;
+    }
+
+    // If removing vote, delete the record
+    if (userVote === -1) {
+      await supabase
+        .from('car_votes')
+        .delete()
+        .eq('car_id', id)
+        .eq('user_id', session.user.id);
+      setUserVote(null);
+    } else {
+      setUserVote(-1);
+    }
+
+    // Recalculate and update vote score from all votes
+    await updateVoteScore();
+  }
+
+  const approveVote = async (e) => {
+    if (!session?.user?.id) return;
+    
+    // Prevent owner from voting on their own car
+    if (vehicle?.user_id === session.user.id) {
+      return;
+    }
+
+    const { data, error} = await supabase
+      .from('car_votes')
+      .upsert({
+        car_id: id,
+        user_id: session.user.id,
+        value: userVote === 1 ? null : 1
+      },
+      {
+        onConflict: 'car_id,user_id'
+      }
+      )
+
+    if (error) {
+      console.error("Failed to approve vote: ", error)
+      return;
+    }
+
+    // If removing vote, delete the record
+    if (userVote === 1) {
+      await supabase
+        .from('car_votes')
+        .delete()
+        .eq('car_id', id)
+        .eq('user_id', session.user.id);
+      setUserVote(null);
+    } else {
+      setUserVote(1);
+    }
+
+    // Recalculate and update vote score from all votes
+    await updateVoteScore();
+  }
 
 
   const [isVisible, setIsVisible] = useState(false);
@@ -1215,6 +1374,77 @@ const VehicleDetails = () => {
                   </button>
                 </div>
               )}
+
+              {/* Voting */}
+              <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8">
+                <div className="flex items-center gap-3 md:gap-4">
+                  {/* Downvote */}
+                  <button 
+                    className={`group flex flex-col items-center gap-1 transition-all duration-200 ${canEdit ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 active:scale-95'} ${userVote === -1 ? 'opacity-100' : 'opacity-80'}`}
+                    onClick={passVote}
+                    disabled={canEdit}
+                  >
+                    <div className={`p-2 rounded-xl border transition-all duration-200 relative ${
+                      userVote === -1 
+                        ? 'bg-red-500/30 border-red-500/60 shadow-lg shadow-red-500/20' 
+                        : 'bg-red-500/10 group-hover:bg-red-500/20 border-red-500/20 group-hover:border-red-500/40'
+                    } ${canEdit ? 'opacity-50' : ''}`}>
+                      {canEdit && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-full h-0.5 bg-gray-400 rotate-45"></div>
+                        </div>
+                      )}
+                      <HandThumbDownIcon className={`h-5 w-5 md:h-6 md:w-6 transition-colors ${
+                        userVote === -1 
+                          ? 'text-red-300' 
+                          : 'text-red-400 group-hover:text-red-300'
+                      } ${canEdit ? 'opacity-50' : ''}`} />
+                    </div>
+                    <span className={`text-xs font-medium transition-colors ${
+                      userVote === -1 
+                        ? 'text-red-400' 
+                        : 'text-gray-400 group-hover:text-red-400'
+                    } ${canEdit ? 'opacity-50 line-through' : ''}`}>Pass</span>
+                  </button>
+                  
+                  {/* Vote Count */}
+                  <div className="flex flex-col items-center min-w-[3rem] md:min-w-[4rem]">
+                    <div className="text-xl md:text-2xl font-bold bg-gradient-to-b from-green-400 via-white to-red-400 bg-clip-text text-transparent">
+                      {vehicle?.vote_score > 0 ? `+${vehicle.vote_score}` : vehicle?.vote_score || 0}
+                    </div>
+                    <span className="text-[10px] md:text-xs text-gray-500 font-medium">Votes</span>
+                  </div>
+                  
+                  {/* Upvote */}
+                  <button 
+                    className={`group flex flex-col items-center gap-1 transition-all duration-200 ${canEdit ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 active:scale-95'} ${userVote === 1 ? 'opacity-100' : 'opacity-80'}`}
+                    onClick={approveVote}
+                    disabled={canEdit}
+                  >
+                    <div className={`p-2 rounded-xl border transition-all duration-200 relative ${
+                      userVote === 1 
+                        ? 'bg-green-500/30 border-green-500/60 shadow-lg shadow-green-500/20' 
+                        : 'bg-green-500/10 group-hover:bg-green-500/20 border-green-500/20 group-hover:border-green-500/40'
+                    } ${canEdit ? 'opacity-50' : ''}`}>
+                      {canEdit && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-full h-0.5 bg-gray-400 rotate-45"></div>
+                        </div>
+                      )}
+                      <HandThumbUpIcon className={`h-5 w-5 md:h-6 md:w-6 transition-colors ${
+                        userVote === 1 
+                          ? 'text-green-300' 
+                          : 'text-green-400 group-hover:text-green-300'
+                      } ${canEdit ? 'opacity-50' : ''}`} />
+                    </div>
+                    <span className={`text-xs font-medium transition-colors ${
+                      userVote === 1 
+                        ? 'text-green-400' 
+                        : 'text-gray-400 group-hover:text-green-400'
+                    } ${canEdit ? 'opacity-50 line-through' : ''}`}>Approve</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
