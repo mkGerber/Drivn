@@ -1375,8 +1375,8 @@ const VehicleDetails = () => {
                 </div>
               )}
 
-              {/* Voting */}
-              <div className="absolute top-2 right-2 md:top-auto md:bottom-6 md:right-6 z-10">
+              {/* Voting  DESKTOP */}
+              <div className="absolute top-2 right-2 md:top-auto md:bottom-6 md:right-6 z-10 hidden md:block">
                 <div className="flex items-center gap-2 md:gap-4">
                   {/* Downvote */}
                   <button 
@@ -1445,6 +1445,78 @@ const VehicleDetails = () => {
                   </button>
                 </div>
               </div>
+
+              
+            </div>
+          </div>
+           {/* Voting  DESKTOP */}
+          <div className="w-full flex justify-center z-10 md:hidden">
+            <div className="flex items-center gap-2 md:gap-4">
+              {/* Downvote */}
+              <button 
+                className={`group flex flex-col items-center gap-1 transition-all duration-200 ${canEdit ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 active:scale-95'} ${userVote === -1 ? 'opacity-100' : 'opacity-80'}`}
+                onClick={passVote}
+                disabled={canEdit}
+              >
+                <div className={`p-1.5 md:p-2 rounded-xl border transition-all duration-200 relative ${
+                  userVote === -1 
+                    ? 'bg-red-500/30 border-red-500/60 shadow-lg shadow-red-500/20' 
+                    : 'bg-red-500/10 group-hover:bg-red-500/20 border-red-500/20 group-hover:border-red-500/40'
+                } ${canEdit ? 'opacity-50' : ''}`}>
+                  {canEdit && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-full h-0.5 bg-gray-400 rotate-45"></div>
+                    </div>
+                  )}
+                  <HandThumbDownIcon className={`h-6 w-6  transition-colors ${
+                    userVote === -1 
+                      ? 'text-red-300' 
+                      : 'text-red-400 group-hover:text-red-300'
+                  } ${canEdit ? 'opacity-50' : ''}`} />
+                </div>
+                <span className={`text-[10px] md:text-xs font-medium transition-colors ${
+                  userVote === -1 
+                    ? 'text-red-400' 
+                    : 'text-gray-400 group-hover:text-red-400'
+                } ${canEdit ? 'opacity-50 line-through' : ''}`}>Pass</span>
+              </button>
+              
+              {/* Vote Count */}
+              <div className="flex flex-col items-center min-w-[2rem] md:min-w-[4rem]">
+                <div className="text-[25px] font-bold bg-gradient-to-b from-green-400 via-white to-red-400 bg-clip-text text-transparent">
+                  {vehicle?.vote_score > 0 ? `+${vehicle.vote_score}` : vehicle?.vote_score || 0}
+                </div>
+                <span className="text-[13px]  text-gray-500 font-medium">Votes</span>
+              </div>
+              
+              {/* Upvote */}
+              <button 
+                className={`group flex flex-col items-center gap-1 transition-all duration-200 ${canEdit ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 active:scale-95'} ${userVote === 1 ? 'opacity-100' : 'opacity-80'}`}
+                onClick={approveVote}
+                disabled={canEdit}
+              >
+                <div className={`p-1.5 md:p-2 rounded-xl border transition-all duration-200 relative ${
+                  userVote === 1 
+                    ? 'bg-green-500/30 border-green-500/60 shadow-lg shadow-green-500/20' 
+                    : 'bg-green-500/10 group-hover:bg-green-500/20 border-green-500/20 group-hover:border-green-500/40'
+                } ${canEdit ? 'opacity-50' : ''}`}>
+                  {canEdit && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-full h-0.5 bg-gray-400 rotate-45"></div>
+                    </div>
+                  )}
+                  <HandThumbUpIcon className={`h-6 w-6  transition-colors ${
+                    userVote === 1 
+                      ? 'text-green-300' 
+                      : 'text-green-400 group-hover:text-green-300'
+                  } ${canEdit ? 'opacity-50' : ''}`} />
+                </div>
+                <span className={`text-[10px] md:text-xs font-medium transition-colors ${
+                  userVote === 1 
+                    ? 'text-green-400' 
+                    : 'text-gray-400 group-hover:text-green-400'
+                } ${canEdit ? 'opacity-50 line-through' : ''}`}>Approve</span>
+              </button>
             </div>
           </div>
         </div>
