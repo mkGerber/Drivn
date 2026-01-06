@@ -1539,9 +1539,9 @@ const VehicleDetails = () => {
                     <div key={wheelSetup.id} className="bg-gray-900/50 rounded-lg border border-gray-700/50 overflow-hidden">
                       {/* Wheel Setup Header */}
                       <div className="p-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-3 flex-wrap">
                               <h4 className="text-base font-semibold text-white">
                                 {wheelSetup.name || 'Unnamed Setup'}
                               </h4>
@@ -1631,26 +1631,28 @@ const VehicleDetails = () => {
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap">
                             {canEdit && (
                               <>
                                 {!wheelSetup.is_active && (
                                   <button
                                     onClick={() => setActiveWheelSetup(wheelSetup.id)}
-                                    className="px-3 py-1.5 bg-blue-500/20 text-blue-400 text-xs font-medium rounded hover:bg-blue-500/30 transition"
+                                    className="px-3 py-1.5 bg-blue-500/20 text-blue-400 text-xs font-medium rounded hover:bg-blue-500/30 transition whitespace-nowrap"
                                   >
                                     Set Active
                                   </button>
                                 )}
                                 <button
                                   onClick={() => handleEditWheelSetup(wheelSetup)}
-                                  className="p-2 bg-gray-700 hover:bg-gray-600 rounded transition"
+                                  className="p-2 bg-gray-700 hover:bg-gray-600 rounded transition flex-shrink-0"
+                                  aria-label="Edit"
                                 >
                                   <PencilSquareIcon className="w-4 h-4 text-white" />
                                 </button>
                                 <button
                                   onClick={() => deleteWheelSetup(wheelSetup.id)}
-                                  className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded transition"
+                                  className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded transition flex-shrink-0"
+                                  aria-label="Delete"
                                 >
                                   <TrashIcon className="w-4 h-4 text-red-400" />
                                 </button>
@@ -1658,7 +1660,8 @@ const VehicleDetails = () => {
                             )}
                             <button
                               onClick={() => setExpandedWheelSetup(isExpanded ? null : wheelSetup.id)}
-                              className="p-2 bg-gray-700 hover:bg-gray-600 rounded transition"
+                              className="p-2 bg-gray-700 hover:bg-gray-600 rounded transition flex-shrink-0"
+                              aria-label={isExpanded ? "Collapse" : "Expand"}
                             >
                               {isExpanded ? (
                                 <ChevronUpIcon className="w-4 h-4 text-white" />
@@ -1911,24 +1914,26 @@ const VehicleDetails = () => {
                                   </div>
                                 </div>
                                 {canEdit && (
-                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                  <div className="flex items-center gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap">
                                     {!tireSetup.is_active && (
                                       <button
                                         onClick={() => setActiveTireSetup(tireSetup.id, wheelSetup.id)}
-                                        className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-medium rounded hover:bg-blue-500/30 transition"
+                                        className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-medium rounded hover:bg-blue-500/30 transition whitespace-nowrap"
                                       >
                                         Set Active
                                       </button>
                                     )}
                                     <button
                                       onClick={() => handleEditTireSetup(tireSetup)}
-                                      className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded transition"
+                                      className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded transition flex-shrink-0"
+                                      aria-label="Edit"
                                     >
                                       <PencilSquareIcon className="w-3.5 h-3.5 text-white" />
                                     </button>
                                     <button
                                       onClick={() => deleteTireSetup(tireSetup.id)}
-                                      className="p-1.5 bg-red-500/20 hover:bg-red-500/30 rounded transition"
+                                      className="p-1.5 bg-red-500/20 hover:bg-red-500/30 rounded transition flex-shrink-0"
+                                      aria-label="Delete"
                                     >
                                       <TrashIcon className="w-3.5 h-3.5 text-red-400" />
                                     </button>
