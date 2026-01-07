@@ -5,15 +5,48 @@ import supabase from '../supabaseClient';
 import { Link } from 'react-router-dom';
 import stockCarImage from '../assets/notfound.jpg';
 import { ArrowRightIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { UserAuth } from '../context/AuthContext';
 
 const UserProfile = () => {
   const { userId } = useParams();
+  const { session } = UserAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [userCars, setUserCars] = useState([]);
   const [coverImages, setCoverImages] = useState({});
   const [loading, setLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(null);
+  const [followsYou, setFollowsYou] = useState(null);
+
+  const followUser = async () => {
+    const { data, error } = await supabase
+    .from('user_follows')
+    .insert({
+      follower_id: session.user.id,
+      following_id: userId
+    })
+
+    if (error) {
+      console.error("Error following user: ", error)
+    } else {
+      setIsFollowing(true);
+    }
+  }
+
+  const unfollowUser = async () => {
+    const { data, error } = await supabase
+    .from('user_follows')
+    .delete()
+    .eq('follower_id', session.user.id)
+    .eq('following_id', userId)
+
+    if (error) {
+      console.error("Error unfollowing user: ", error)
+    } else {
+      setIsFollowing(false);
+    }
+  }
 
   useEffect(() => {
     setIsVisible(true);
@@ -72,10 +105,57 @@ const UserProfile = () => {
       }
     };
 
+    const checkFollow = async () => {
+      if (!session?.user?.id || !userId) {
+        setIsFollowing(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('user_follows')
+        .select('id')
+        .eq('follower_id', session.user.id)
+        .eq('following_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('checkFollow error:', error);
+        setIsFollowing(false);
+        return;
+      }
+
+      setIsFollowing(!!data);
+    };
+
+    const checkFollowsYou = async () => {
+      if (!session?.user?.id || !userId) {
+        setFollowsYou(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('user_follows')
+        .select('id')
+        .eq('follower_id', userId)
+        .eq('following_id', session.user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('checkFollowsYou error:', error);
+        setFollowsYou(false);
+        return;
+      }
+
+      setFollowsYou(!!data);
+    };
+
+
     if (userId) {
       fetchProfile();
+      checkFollow();
+      checkFollowsYou();
     }
-  }, [userId]);
+  }, [userId, session]);
 
   if (loading) {
     return (
@@ -166,6 +246,37 @@ const UserProfile = () => {
                   </div>
                 </div>
               </div>
+              <div className="flex flex-col items-center">
+                {session?.user?.id && session.user.id !== userId && (
+                  isFollowing ? (
+                    <div 
+                      className="px-4 py-2 rounded-lg font-semibold transition-all bg-gray-700 hover:bg-gray-600 !text-white shadow-lg hover:cursor-pointer"
+                      onClick={unfollowUser}
+                    >
+                      Unfollow
+                    </div>
+                  ) : (
+                    <div 
+                      className="px-4 py-2 rounded-lg font-semibold transition-all bg-gradient-to-r from-red-500 to-orange-500 !text-white shadow-lg shadow-red-500/50 hover:cursor-pointer"
+                      onClick={followUser}
+                    >
+                      Follow
+                    </div>
+                  )
+                )}
+                {!followsYou && (
+                  <div className="flex flex-col items-center mt-2">
+                    <p>
+                      This user follows you!
+                    </p>
+                    <p className="text-sm">Follow them back</p>
+                    
+                  </div>
+                )}
+              </div>
+
+
+              
             </div>
           </div>
         </div>
