@@ -4,7 +4,7 @@ import { UserAuth } from '../context/AuthContext';
 import Navbar from './Navbar';
 import supabase from '../supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
-import { PencilIcon, CameraIcon, ArrowRightIcon, BookmarkIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, CameraIcon, ArrowRightIcon, BookmarkIcon, UserGroupIcon, UserPlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import notFound from '../assets/notfound.jpg';
 
 const Profile = () => {
@@ -31,6 +31,14 @@ const Profile = () => {
   const [coverImages, setCoverImages] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 3; // 1 row of 3
+
+  // Followers and Following
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [followersLoading, setFollowersLoading] = useState(true);
+  const [followingLoading, setFollowingLoading] = useState(true);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -129,6 +137,102 @@ const Profile = () => {
     };
 
     fetchSavedVehicles();
+  }, [session]);
+
+  // Fetch followers and following
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setFollowersLoading(false);
+      setFollowingLoading(false);
+      return;
+    }
+
+    const fetchFollowers = async () => {
+      try {
+        // Get users who follow the current user (where following_id = current user)
+        const { data, error } = await supabase
+          .from('user_follows')
+          .select('follower_id')
+          .eq('following_id', session.user.id);
+
+        if (error) {
+          console.error('Error fetching followers:', error);
+          setFollowers([]);
+          setFollowersLoading(false);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          setFollowers([]);
+          setFollowersLoading(false);
+          return;
+        }
+
+        // Fetch profile data for each follower
+        const followerIds = data.map(item => item.follower_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .in('id', followerIds);
+
+        if (profilesError) {
+          console.error('Error fetching follower profiles:', profilesError);
+          setFollowers([]);
+        } else {
+          setFollowers(profilesData || []);
+        }
+      } catch (err) {
+        console.error('Error in fetchFollowers:', err);
+        setFollowers([]);
+      } finally {
+        setFollowersLoading(false);
+      }
+    };
+
+    const fetchFollowing = async () => {
+      try {
+        // Get users that the current user follows (where follower_id = current user)
+        const { data, error } = await supabase
+          .from('user_follows')
+          .select('following_id')
+          .eq('follower_id', session.user.id);
+
+        if (error) {
+          console.error('Error fetching following:', error);
+          setFollowing([]);
+          setFollowingLoading(false);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          setFollowing([]);
+          setFollowingLoading(false);
+          return;
+        }
+
+        // Fetch profile data for each user being followed
+        const followingIds = data.map(item => item.following_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .in('id', followingIds);
+
+        if (profilesError) {
+          console.error('Error fetching following profiles:', profilesError);
+          setFollowing([]);
+        } else {
+          setFollowing(profilesData || []);
+        }
+      } catch (err) {
+        console.error('Error in fetchFollowing:', err);
+        setFollowing([]);
+      } finally {
+        setFollowingLoading(false);
+      }
+    };
+
+    fetchFollowers();
+    fetchFollowing();
   }, [session]);
 
   const saveProfile = async (e) => {
@@ -439,6 +543,193 @@ const Profile = () => {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* Followers and Following Buttons */}
+        <div
+          className={`bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 mb-6 transform transition-all duration-1000 delay-300 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Followers Button */}
+            <button
+              onClick={() => setShowFollowersModal(true)}
+              className="flex items-center justify-center gap-3 px-6 py-4 bg-gray-900/50 hover:bg-gray-900/70 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all group"
+            >
+              <UserGroupIcon className="w-6 h-6 text-blue-400" />
+              <div className="text-left">
+                <div className="text-sm text-gray-400">Followers</div>
+                {followersLoading ? (
+                  <div className="text-lg font-bold text-white">...</div>
+                ) : (
+                  <div className="text-lg font-bold text-white">{followers.length}</div>
+                )}
+              </div>
+              <ArrowRightIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all ml-auto" />
+            </button>
+
+            {/* Following Button */}
+            <button
+              onClick={() => setShowFollowingModal(true)}
+              className="flex items-center justify-center gap-3 px-6 py-4 bg-gray-900/50 hover:bg-gray-900/70 rounded-xl border border-gray-700/50 hover:border-green-500/50 transition-all group"
+            >
+              <UserPlusIcon className="w-6 h-6 text-green-400" />
+              <div className="text-left">
+                <div className="text-sm text-gray-400">Following</div>
+                {followingLoading ? (
+                  <div className="text-lg font-bold text-white">...</div>
+                ) : (
+                  <div className="text-lg font-bold text-white">{following.length}</div>
+                )}
+              </div>
+              <ArrowRightIcon className="w-5 h-5 text-gray-400 group-hover:text-green-400 group-hover:translate-x-1 transition-all ml-auto" />
+            </button>
+          </div>
+        </div>
+
+        {/* Followers Modal */}
+        {showFollowersModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowFollowersModal(false)}>
+            <div className="bg-gray-800 rounded-2xl border border-gray-700/50 w-full max-w-md max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
+                <div className="flex items-center gap-3">
+                  <UserGroupIcon className="w-6 h-6 text-blue-400" />
+                  <h2 className="text-xl font-bold text-white">Followers</h2>
+                  {!followersLoading && (
+                    <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-semibold">
+                      {followers.length}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowFollowersModal(false)}
+                  className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <XMarkIcon className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6">
+                {followersLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                  </div>
+                ) : followers.length === 0 ? (
+                  <div className="text-center py-12">
+                    <UserGroupIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-400 text-lg mb-2">No followers yet</p>
+                    <p className="text-gray-500 text-sm">Share your profile to get more followers!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {followers.map((user) => (
+                      <Link
+                        key={user.id}
+                        to={`/user/${user.id}`}
+                        onClick={() => setShowFollowersModal(false)}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-gray-900/50 hover:bg-gray-900/70 transition-all border border-gray-700/50 hover:border-blue-500/50 group"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-gray-700 overflow-hidden flex-shrink-0">
+                          {user.avatar_url ? (
+                            <img
+                              src={user.avatar_url}
+                              alt={user.username || 'User'}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium truncate group-hover:text-blue-400 transition-colors">
+                            @{user.username || 'user'}
+                          </p>
+                        </div>
+                        <ArrowRightIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Following Modal */}
+        {showFollowingModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowFollowingModal(false)}>
+            <div className="bg-gray-800 rounded-2xl border border-gray-700/50 w-full max-w-md max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
+                <div className="flex items-center gap-3">
+                  <UserPlusIcon className="w-6 h-6 text-green-400" />
+                  <h2 className="text-xl font-bold text-white">Following</h2>
+                  {!followingLoading && (
+                    <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-semibold">
+                      {following.length}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowFollowingModal(false)}
+                  className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <XMarkIcon className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6">
+                {followingLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
+                  </div>
+                ) : following.length === 0 ? (
+                  <div className="text-center py-12">
+                    <UserPlusIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-400 text-lg mb-2">Not following anyone yet</p>
+                    <p className="text-gray-500 text-sm">Start exploring and follow other users!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {following.map((user) => (
+                      <Link
+                        key={user.id}
+                        to={`/user/${user.id}`}
+                        onClick={() => setShowFollowingModal(false)}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-gray-900/50 hover:bg-gray-900/70 transition-all border border-gray-700/50 hover:border-green-500/50 group"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-gray-700 overflow-hidden flex-shrink-0">
+                          {user.avatar_url ? (
+                            <img
+                              src={user.avatar_url}
+                              alt={user.username || 'User'}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium truncate group-hover:text-green-400 transition-colors">
+                            @{user.username || 'user'}
+                          </p>
+                        </div>
+                        <ArrowRightIcon className="w-5 h-5 text-gray-400 group-hover:text-green-400 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

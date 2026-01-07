@@ -18,6 +18,7 @@ const UserProfile = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isFollowing, setIsFollowing] = useState(null);
   const [followsYou, setFollowsYou] = useState(null);
+  const [stats, setStats] = useState({ totalMileage: 0, totalMaintenanceCosts: 0 });
 
   const followUser = async () => {
     const { data, error } = await supabase
@@ -79,8 +80,30 @@ const UserProfile = () => {
 
         if (carsError) {
           console.error('Error fetching vehicles:', carsError);
+          setUserCars([]);
         } else {
           setUserCars(carsData || []);
+          
+          // Calculate stats
+          const totalMileage = (carsData || []).reduce((sum, car) => sum + (Number(car.current_mileage) || 0), 0);
+          
+          // Fetch maintenance logs for all vehicles
+          if (carsData && carsData.length > 0) {
+            const carIds = carsData.map(car => car.id);
+            const { data: logsData, error: logsError } = await supabase
+              .from('vehicle_logs')
+              .select('cost')
+              .in('vehicle_id', carIds);
+
+            if (!logsError && logsData) {
+              const totalMaintenanceCosts = logsData.reduce((sum, log) => sum + (Number(log.cost) || 0), 0);
+              setStats({ totalMileage, totalMaintenanceCosts });
+            } else {
+              setStats({ totalMileage, totalMaintenanceCosts: 0 });
+            }
+          } else {
+            setStats({ totalMileage, totalMaintenanceCosts: 0 });
+          }
         }
 
         // Fetch cover images
@@ -202,10 +225,10 @@ const UserProfile = () => {
           }`}
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(228,90,65,0.1),transparent_50%)]"></div>
-          <div className="relative bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
+          <div className="relative bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-gray-700/50">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 md:gap-8">
               {/* Avatar */}
-              <div className="w-32 h-32 flex-shrink-0 rounded-full bg-gray-700 overflow-hidden border-4 border-gray-700">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 rounded-full bg-gray-700 overflow-hidden border-4 border-gray-700">
                 {profile.avatar_url ? (
                   <img
                     src={profile.avatar_url}
@@ -214,69 +237,92 @@ const UserProfile = () => {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400">
-                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-12 h-12 sm:w-16 sm:h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
                 )}
               </div>
 
-              {/* Info */}
-              <div className="flex-1 w-full text-center sm:text-left">
-                <h1 className="text-4xl font-extrabold text-white mb-2">
-                  <span className="bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
+              {/* Info Section */}
+              <div className="flex-1 w-full flex flex-col items-center sm:items-start relative">
+                <h1 className="font-extrabold text-white mb-2 text-center sm:text-left">
+                  <span className="text-3xl sm:text-4xl md:text-6xl bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
                     @{profile.username || 'user'}
                   </span>
                 </h1>
 
                 {profile.bio && (
-                  <p className="text-gray-300 text-base mt-3 max-w-2xl bg-gray-900/50 rounded-lg p-4 border border-gray-700/50">
+                  <p className="text-gray-300 text-sm sm:text-base mt-3 max-w-2xl bg-gray-900/50 rounded-lg p-3 sm:p-4 border border-gray-700/50 text-center sm:text-left w-full">
                     {profile.bio}
                   </p>
                 )}
 
-                <div className="mt-6 flex items-center gap-6">
-                  <div className="bg-gray-900/50 rounded-xl px-6 py-3 border border-gray-700/50">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
-                      {userCars.length}
+                {/* Stats */}
+                {!loading && userCars.length > 0 && (
+                  <div className="mt-4 sm:mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full">
+                    <div className="bg-gray-900/50 rounded-xl px-4 sm:px-6 py-2 sm:py-3 border border-gray-700/50">
+                      <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
+                        {userCars.length}
+                      </div>
+                      <div className="text-gray-400 text-xs sm:text-sm mt-1">
+                        {userCars.length === 1 ? 'Vehicle' : 'Vehicles'}
+                      </div>
                     </div>
-                    <div className="text-gray-400 text-sm mt-1">
-                      {userCars.length === 1 ? 'Vehicle' : 'Vehicles'}
+                    <div className="bg-gray-900/50 rounded-xl px-4 sm:px-6 py-2 sm:py-3 border border-gray-700/50">
+                      <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                        {stats.totalMileage.toLocaleString()}
+                      </div>
+                      <div className="text-gray-400 text-xs sm:text-sm mt-1">Total Miles</div>
+                    </div>
+                    <div className="bg-gray-900/50 rounded-xl px-4 sm:px-6 py-2 sm:py-3 border border-gray-700/50 col-span-2 sm:col-span-1">
+                      <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+                        ${stats.totalMaintenanceCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-gray-400 text-xs sm:text-sm mt-1">Total Maintenance</div>
                     </div>
                   </div>
+                )}
+                {!loading && userCars.length === 0 && (
+                  <div className="mt-4 sm:mt-6 flex items-center justify-center sm:justify-start gap-6 w-full">
+                    <div className="bg-gray-900/50 rounded-xl px-4 sm:px-6 py-2 sm:py-3 border border-gray-700/50">
+                      <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                        0
+                      </div>
+                      <div className="text-gray-400 text-xs sm:text-sm mt-1">Vehicles</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Follow Button Section - Mobile: below stats, Desktop: top right */}
+                <div className="mt-4 sm:mt-0 sm:absolute sm:top-0 sm:right-0 flex flex-col items-center sm:items-end">
+                  {session?.user?.id && session.user.id !== userId && (
+                    isFollowing ? (
+                      <div 
+                        className="px-4 py-2 rounded-lg font-semibold transition-all bg-gray-700 hover:bg-gray-600 !text-white shadow-lg hover:cursor-pointer text-sm sm:text-base"
+                        onClick={unfollowUser}
+                      >
+                        Unfollow
+                      </div>
+                    ) : (
+                      <div 
+                        className="px-4 py-2 rounded-lg font-semibold transition-all bg-gradient-to-r from-red-500 to-orange-500 !text-white shadow-lg shadow-red-500/50 hover:cursor-pointer text-sm sm:text-base"
+                        onClick={followUser}
+                      >
+                        Follow
+                      </div>
+                    )
+                  )}
+                  {followsYou && !isFollowing && (
+                    <div className="flex flex-col items-center sm:items-end mt-2">
+                      <p className="text-xs sm:text-sm text-gray-400 text-center sm:text-right">
+                        This user follows you!
+                      </p>
+                      <p className="text-xs text-gray-500">Follow them back</p>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex flex-col items-center">
-                {session?.user?.id && session.user.id !== userId && (
-                  isFollowing ? (
-                    <div 
-                      className="px-4 py-2 rounded-lg font-semibold transition-all bg-gray-700 hover:bg-gray-600 !text-white shadow-lg hover:cursor-pointer"
-                      onClick={unfollowUser}
-                    >
-                      Unfollow
-                    </div>
-                  ) : (
-                    <div 
-                      className="px-4 py-2 rounded-lg font-semibold transition-all bg-gradient-to-r from-red-500 to-orange-500 !text-white shadow-lg shadow-red-500/50 hover:cursor-pointer"
-                      onClick={followUser}
-                    >
-                      Follow
-                    </div>
-                  )
-                )}
-                {!followsYou && (
-                  <div className="flex flex-col items-center mt-2">
-                    <p>
-                      This user follows you!
-                    </p>
-                    <p className="text-sm">Follow them back</p>
-                    
-                  </div>
-                )}
-              </div>
-
-
-              
             </div>
           </div>
         </div>
