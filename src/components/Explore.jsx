@@ -4,7 +4,7 @@ import supabase from '../supabaseClient';
 import { Link } from 'react-router-dom';
 import notFound from '../assets/notfound.jpg';
 import { UserAuth } from '../context/AuthContext';
-import { MagnifyingGlassIcon, FunnelIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, FunnelIcon, ArrowRightIcon, XCircleIcon } from '@heroicons/react/24/outline';
 
 const Explore = () => {
   const { session } = UserAuth();
@@ -22,6 +22,7 @@ const Explore = () => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [transmissionFilter, setTransmissionFilter] = useState('all');
+  const [plateSearch, setPlateSearch] = useState('');
 
   
 
@@ -207,6 +208,19 @@ const Explore = () => {
       );
     }
 
+    // License plate search (fuzzy matching)
+    if (plateSearch) {
+      const plateQuery = plateSearch.toLowerCase().replace(/\s+/g, '').replace(/-/g, ''); // Remove spaces and dashes for matching
+      result = result.filter(car => {
+        if (!car.license_plate) return false;
+        const carPlate = (car.license_plate || '').toLowerCase().replace(/\s+/g, '').replace(/-/g, '');
+        // Check if the plate contains the search query or is similar
+        return carPlate.includes(plateQuery) || 
+               plateQuery.includes(carPlate) ||
+               calculateSimilarity(carPlate, plateQuery) > 0.6;
+      });
+    }
+
     // Transmission filter (fuzzy)
     if (transmissionFilter !== 'all') {
       result = result.filter(car =>
@@ -233,7 +247,41 @@ const Explore = () => {
     }
 
     setFilteredVehicles(result);
-  }, [vehicles, search, sortBy, transmissionFilter, session]);
+  }, [vehicles, search, sortBy, transmissionFilter, plateSearch, session]);
+
+  // Helper function to calculate similarity between two strings
+  const calculateSimilarity = (str1, str2) => {
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+    if (longer.length === 0) return 1.0;
+    const distance = levenshteinDistance(longer, shorter);
+    return (longer.length - distance) / longer.length;
+  };
+
+  // Levenshtein distance for fuzzy matching
+  const levenshteinDistance = (str1, str2) => {
+    const matrix = [];
+    for (let i = 0; i <= str2.length; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= str1.length; j++) {
+      matrix[0][j] = j;
+    }
+    for (let i = 1; i <= str2.length; i++) {
+      for (let j = 1; j <= str1.length; j++) {
+        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+        }
+      }
+    }
+    return matrix[str2.length][str1.length];
+  };
 
 
   if (!session) {
@@ -346,6 +394,27 @@ const Explore = () => {
               <option value="mileage-low">Lowest Mileage</option>
               <option value="year-new">Newest Year</option>
             </select>
+          </div>
+
+          {/* License Plate Search */}
+          <div className="mt-4 relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by license plate (e.g., ABC123 or ABC-123)..."
+              value={plateSearch}
+              onChange={(e) => setPlateSearch(e.target.value)}
+              className="w-full pl-10 pr-10 py-3 rounded-xl bg-gray-900 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+            />
+            {plateSearch && (
+              <button
+                onClick={() => setPlateSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                type="button"
+              >
+                <XCircleIcon className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -4,8 +4,8 @@ import Navbar from './Navbar';
 import { useParams, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { UserAuth } from '../context/AuthContext';
-import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon, ChatBubbleLeftIcon, ArrowUpIcon, ArrowDownIcon, QuestionMarkCircleIcon, ArrowRightIcon, PlusIcon, ChevronDownIcon, ChevronUpIcon, HandThumbDownIcon, HandThumbUpIcon} from '@heroicons/react/24/outline';
-import {ArrowUpIcon as ArrowUpSolid, ArrowDownIcon as ArrowDownSolid} from '@heroicons/react/24/solid';
+import {PencilSquareIcon, TrashIcon, CheckIcon, XCircleIcon, ChatBubbleLeftIcon, ArrowUpIcon, ArrowDownIcon, QuestionMarkCircleIcon, ArrowRightIcon, PlusIcon, ChevronDownIcon, ChevronUpIcon, HandThumbDownIcon, HandThumbUpIcon, BookmarkIcon} from '@heroicons/react/24/outline';
+import {ArrowUpIcon as ArrowUpSolid, ArrowDownIcon as ArrowDownSolid, BookmarkIcon as BookmarkSolid} from '@heroicons/react/24/solid';
 
 
 
@@ -154,6 +154,9 @@ const VehicleDetails = () => {
   
   // User's current vote (null, -1 for pass, 1 for approve)
   const [userVote, setUserVote] = useState(null);
+
+  // Does the user have the vehicle saved?
+  const [vehicleSaved, setVehicleSaved] = useState(null)
 
 
   
@@ -626,6 +629,13 @@ const VehicleDetails = () => {
     getLogs();
     getWheelSetups();
   }, [id]);
+
+  // Fetch saved vehicle status when session is available
+  useEffect(() => {
+    if (id && session?.user?.id) {
+      getSaveVehicleInfo();
+    }
+  }, [id, session]);
 
   // Fetch user vote when component loads or id changes
   useEffect(() => {
@@ -1170,6 +1180,51 @@ const VehicleDetails = () => {
     await updateVoteScore();
   }
 
+  const getSaveVehicleInfo = async (e) => {
+    if (!session?.user?.id || !id) return;
+    
+    const {data, error} = await supabase
+    .from("saved_vehicles")
+    .select("*")
+    .eq('car_id', id)
+    .eq('user_id', session.user.id)
+
+    if (data && data.length > 0) {
+      setVehicleSaved(true)
+    } 
+
+    console.log(data?.length || 0)
+  }
+ 
+  const handleSaveVehicle = async (e) => {
+    if (!session?.user?.id) return;
+
+    if (!vehicleSaved) {
+      const { data, error } = await supabase
+        .from("saved_vehicles")
+        .insert([{ car_id: id, user_id: session.user.id }]);
+
+      if (error) {
+        console.error("Failed to save vehicle:", error);
+      } else {
+        setVehicleSaved(true);
+      }
+    } else {
+      const { data, error } = await supabase
+        .from("saved_vehicles")
+        .delete()
+        .eq("car_id", id)
+        .eq("user_id", session.user.id);
+
+      if (error) {
+        console.error("Failed to unsave vehicle:", error);
+      } else {
+        setVehicleSaved(false);
+      }
+    }
+  };
+
+
 
   const [isVisible, setIsVisible] = useState(false);
 
@@ -1375,6 +1430,20 @@ const VehicleDetails = () => {
                 </div>
               )}
 
+              {!vehicleSaved && !canEdit && (
+                <BookmarkIcon 
+                className="w-8 h-8 absolute top-5 right-5 hover:cursor-pointer text-gray-400 hover:text-blue-500 hover:scale-110 active:scale-95 transition-all duration-200" 
+                onClick={handleSaveVehicle}
+                />
+              )}
+              {vehicleSaved && !canEdit && (
+                <BookmarkSolid
+                className="w-8 h-8 absolute top-5 right-5 hover:cursor-pointer text-blue-500 hover:text-gray-400 hover:scale-110 active:scale-95 transition-all duration-200" 
+                onClick={handleSaveVehicle}
+                />
+              )}
+              
+
               {/* Voting  DESKTOP */}
               <div className="absolute top-2 right-2 md:top-auto md:bottom-6 md:right-6 z-10 hidden md:block">
                 <div className="flex items-center gap-2 md:gap-4">
@@ -1449,8 +1518,8 @@ const VehicleDetails = () => {
               
             </div>
           </div>
-           {/* Voting  DESKTOP */}
-          <div className="w-full flex justify-center z-10 md:hidden">
+           {/* Voting  MOBILE */}
+          <div className="w-full flex justify-center z-10 md:hidden mt-6">
             <div className="flex items-center gap-2 md:gap-4">
               {/* Downvote */}
               <button 
@@ -1523,7 +1592,7 @@ const VehicleDetails = () => {
 
 
         {/* MAIN LAYOUT: Content + Sidebar */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 ">
           {/* LEFT COLUMN - Main Content */}
           <div className="xl:col-span-8 space-y-6">
           {/* MAIN SECTION - Image and Info */}

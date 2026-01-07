@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { UserAuth } from '../context/AuthContext';
 import Navbar from './Navbar';
 import supabase from '../supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
-import { PencilIcon, CameraIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, CameraIcon, ArrowRightIcon, BookmarkIcon } from '@heroicons/react/24/outline';
+import notFound from '../assets/notfound.jpg';
 
 const Profile = () => {
   const { session, signOut } = UserAuth();
@@ -23,6 +24,13 @@ const Profile = () => {
   const fileInputRef = React.useRef(null);
 
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Saved vehicles
+  const [savedVehicles, setSavedVehicles] = useState([]);
+  const [savedVehiclesLoading, setSavedVehiclesLoading] = useState(true);
+  const [coverImages, setCoverImages] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3; // 1 row of 3
 
   useEffect(() => {
     setIsVisible(true);
@@ -49,6 +57,78 @@ const Profile = () => {
     };
 
     fetchProfile();
+  }, [session]);
+
+  // Fetch saved vehicles
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setSavedVehiclesLoading(false);
+      return;
+    }
+
+    const fetchSavedVehicles = async () => {
+      try {
+        // Fetch saved vehicles with car details
+        const { data: savedData, error: savedError } = await supabase
+          .from('saved_vehicles')
+          .select(`
+            car_id,
+            cars (*)
+          `)
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+
+        if (savedError) {
+          console.error('Error fetching saved vehicles:', savedError);
+          setSavedVehicles([]);
+        } else {
+          // Extract car data from the join
+          const vehicles = (savedData || [])
+            .map(item => item.cars)
+            .filter(car => car !== null); // Filter out any null cars
+          
+          setSavedVehicles(vehicles);
+
+          // Fetch cover images for each vehicle
+          const imagePromises = vehicles.map(async (car) => {
+            if (!car.id) return;
+            
+            const { data: imageData, error: imageError } = await supabase
+              .from('car_images')
+              .select('image_url')
+              .eq('car_id', car.id)
+              .eq('is_cover', true)
+              .limit(1)
+              .single();
+
+            if (!imageError && imageData) {
+              setCoverImages(prev => ({ ...prev, [car.id]: imageData.image_url }));
+            } else {
+              // Try to get any image if no cover image
+              const { data: anyImage } = await supabase
+                .from('car_images')
+                .select('image_url')
+                .eq('car_id', car.id)
+                .limit(1)
+                .single();
+
+              if (anyImage) {
+                setCoverImages(prev => ({ ...prev, [car.id]: anyImage.image_url }));
+              }
+            }
+          });
+
+          await Promise.all(imagePromises);
+        }
+      } catch (err) {
+        console.error('Error in fetchSavedVehicles:', err);
+        setSavedVehicles([]);
+      } finally {
+        setSavedVehiclesLoading(false);
+      }
+    };
+
+    fetchSavedVehicles();
   }, [session]);
 
   const saveProfile = async (e) => {
@@ -362,7 +442,157 @@ const Profile = () => {
           </div>
         )}
 
-        
+        {/* Saved Vehicles */}
+        <div
+          className={`bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8 mb-6 transform transition-all duration-1000 delay-400 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <BookmarkIcon className="w-6 h-6 text-blue-400" />
+            <h2 className="text-2xl font-bold text-white">Saved Vehicles</h2>
+            {savedVehicles.length > 0 && (
+              <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-semibold">
+                {savedVehicles.length}
+              </span>
+            )}
+          </div>
+
+          {savedVehiclesLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+            </div>
+          ) : savedVehicles.length === 0 ? (
+            <div className="text-center py-12">
+              <BookmarkIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400 text-lg mb-2">No saved vehicles yet</p>
+              <p className="text-gray-500 text-sm">Start exploring and save your favorite builds!</p>
+              <Link
+                to="/explore"
+                className="inline-block mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 !text-white rounded-xl hover:opacity-90 transition font-semibold shadow-lg shadow-blue-500/50 flex items-center gap-2"
+              >
+                Explore Builds
+                <ArrowRightIcon className="w-5 h-5" />
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {savedVehicles
+                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map((car, index) => (
+                <Link
+                  key={car.id}
+                  to={`/vehicle/${car.id}`}
+                  className={`transform transition-all duration-700 ${
+                    isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                  }`}
+                  style={{ transitionDelay: `${index * 100}ms` }}
+                >
+                  <div className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/20 flex flex-col h-full">
+                    {/* Image Container */}
+                    <div className="relative h-[300px] overflow-hidden flex-shrink-0">
+                      <img
+                        src={coverImages[car.id] || notFound}
+                        alt={`${car.make} ${car.model}`}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      
+                      {/* Hover Text */}
+                      <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="flex items-center gap-2 text-white font-semibold">
+                          <span>View Details</span>
+                          <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </div>
+
+                      {/* Year Badge */}
+                      <div className="absolute top-4 left-4">
+                        <span className="bg-black/70 backdrop-blur-sm text-white text-sm font-bold px-3 py-1 rounded-lg">
+                          {car.year}
+                        </span>
+                      </div>
+
+                      {/* Saved Badge */}
+                      <div className="absolute top-4 right-4">
+                        <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                          SAVED
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Info Section */}
+                    <div className="p-5 bg-gradient-to-b from-gray-800/50 to-gray-900/50 flex flex-col flex-grow">
+                      <h2 className="text-lg font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">
+                        {car.make} {car.model}
+                      </h2>
+                      <p className="text-gray-400 text-sm mb-3 min-h-[1.25rem]">
+                        {car.trim || '\u00A0'}
+                      </p>
+
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700/50 mt-auto">
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Mileage</div>
+                          <div className="text-sm font-semibold text-white">
+                            {car.current_mileage?.toLocaleString() || '0'} mi
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Transmission</div>
+                          <div className="text-sm font-semibold text-white uppercase">
+                            {car.transmission || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+              </div>
+
+              {/* Pagination */}
+              {savedVehicles.length > itemsPerPage && (
+                <div className="flex items-center justify-center gap-2 mt-8">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-700"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: Math.ceil(savedVehicles.length / itemsPerPage) }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-4 py-2 rounded-lg transition ${
+                          currentPage === page
+                            ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/50'
+                            : 'bg-gray-700 text-white hover:bg-gray-600'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(savedVehicles.length / itemsPerPage), prev + 1))}
+                    disabled={currentPage === Math.ceil(savedVehicles.length / itemsPerPage)}
+                    className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Feedback */}
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8">
