@@ -10,15 +10,75 @@ import {
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { UserAuth } from '../context/AuthContext';
+import supabase from '../supabaseClient';
 
 const Home = () => {
   const { session } = UserAuth();
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
+  const [carouselImages, setCarouselImages] = useState([]);
 
   useEffect(() => {
     setIsVisible(true);
+    fetchCarouselImages();
   }, []);
+
+  // Fisher-Yates shuffle algorithm
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  const fetchCarouselImages = async () => {
+    try {
+      // Fetch a good number of random car images
+      // We need at least 36 images for the carousel (3 cols * 3 photos * 4 sets)
+      const { data, error } = await supabase
+        .from('car_images')
+        .select('image_url')
+        .limit(100);
+
+      if (error) {
+        console.error('Error fetching car images:', error);
+        setCarouselImages([]);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        // Filter out null/empty image URLs
+        const validImages = data
+          .map(img => img.image_url)
+          .filter(url => url && url.trim() !== '');
+        
+        // Shuffle the images
+        const shuffled = shuffleArray(validImages);
+        
+        // If we have fewer than 36 images, duplicate them to fill the carousel
+        const imagesNeeded = 36;
+        let finalImages = [];
+        if (shuffled.length >= imagesNeeded) {
+          finalImages = shuffled.slice(0, imagesNeeded);
+        } else {
+          // Repeat images to reach the needed count
+          while (finalImages.length < imagesNeeded) {
+            finalImages = [...finalImages, ...shuffled];
+          }
+          finalImages = finalImages.slice(0, imagesNeeded);
+        }
+        
+        setCarouselImages(finalImages);
+      } else {
+        setCarouselImages([]);
+      }
+    } catch (error) {
+      console.error('Error fetching carousel images:', error);
+      setCarouselImages([]);
+    }
+  };
 
   const features = [
     {
@@ -174,6 +234,168 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Infinite Scrolling Carousel Section */}
+      <section className="py-16 bg-black overflow-hidden relative">
+        {carouselImages.length > 0 ? (
+          <div className="carousel-container">
+            <div className="carousel-track">
+              {/* First set of columns */}
+              {[...Array(2)].map((_, setIndex) => (
+                <div key={setIndex} className="flex gap-3 md:gap-4 px-2 md:px-4 carousel-item">
+                  {/* Column 1 */}
+                  <div className="flex flex-col gap-3 md:gap-4">
+                    {[0, 1, 2].map((i) => {
+                      const imageIndex = setIndex * 9 + i;
+                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
+                      return (
+                        <div
+                          key={`col1-${setIndex}-${i}`}
+                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt="Car showcase" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Column 2 */}
+                  <div className="flex flex-col gap-3 md:gap-4 mt-8 md:mt-12">
+                    {[0, 1, 2].map((i) => {
+                      const imageIndex = setIndex * 9 + 3 + i;
+                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
+                      return (
+                        <div
+                          key={`col2-${setIndex}-${i}`}
+                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt="Car showcase" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Column 3 */}
+                  <div className="flex flex-col gap-3 md:gap-4">
+                    {[0, 1, 2].map((i) => {
+                      const imageIndex = setIndex * 9 + 6 + i;
+                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
+                      return (
+                        <div
+                          key={`col3-${setIndex}-${i}`}
+                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt="Car showcase" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {/* Duplicate set for seamless loop */}
+              {[...Array(2)].map((_, setIndex) => (
+                <div key={`dup-${setIndex}`} className="flex gap-3 md:gap-4 px-2 md:px-4 carousel-item">
+                  {/* Column 1 */}
+                  <div className="flex flex-col gap-3 md:gap-4">
+                    {[0, 1, 2].map((i) => {
+                      const imageIndex = (setIndex + 2) * 9 + i;
+                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
+                      return (
+                        <div
+                          key={`dup-col1-${setIndex}-${i}`}
+                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt="Car showcase" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Column 2 */}
+                  <div className="flex flex-col gap-3 md:gap-4 mt-8 md:mt-12">
+                    {[0, 1, 2].map((i) => {
+                      const imageIndex = (setIndex + 2) * 9 + 3 + i;
+                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
+                      return (
+                        <div
+                          key={`dup-col2-${setIndex}-${i}`}
+                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt="Car showcase" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Column 3 */}
+                  <div className="flex flex-col gap-3 md:gap-4">
+                    {[0, 1, 2].map((i) => {
+                      const imageIndex = (setIndex + 2) * 9 + 6 + i;
+                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
+                      return (
+                        <div
+                          key={`dup-col3-${setIndex}-${i}`}
+                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt="Car showcase" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 py-16">
+            Loading car showcase...
+          </div>
+        )}
+      </section>
+
       {/* Features Section */}
       <section id="features" className="py-24 px-4 bg-gradient-to-b from-gray-900 to-black dark:from-black dark:to-gray-900">
         <div className="max-w-7xl mx-auto">
@@ -297,6 +519,28 @@ const Home = () => {
         .animate-gradient {
           background-size: 200% 200%;
           animation: gradient 3s ease infinite;
+        }
+        .carousel-container {
+          width: 100%;
+          overflow: hidden;
+          mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+          -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+        .carousel-track {
+          display: flex;
+          animation: scroll-left 30s linear infinite;
+          will-change: transform;
+        }
+        @keyframes scroll-left {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        .carousel-item {
+          flex-shrink: 0;
         }
       `}</style>
     </div>
