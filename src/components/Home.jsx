@@ -57,8 +57,8 @@ const Home = () => {
         // Shuffle the images
         const shuffled = shuffleArray(validImages);
         
-        // If we have fewer than 36 images, duplicate them to fill the carousel
-        const imagesNeeded = 36;
+        // If we have fewer than 20 images, duplicate them to fill the carousel
+        const imagesNeeded = 20;
         let finalImages = [];
         if (shuffled.length >= imagesNeeded) {
           finalImages = shuffled.slice(0, imagesNeeded);
@@ -235,156 +235,33 @@ const Home = () => {
       </section>
 
       {/* Infinite Scrolling Carousel Section */}
-      <section className="py-16 bg-black overflow-hidden relative">
+      <section className="py-12 bg-gradient-to-b from-gray-700 to-gray-900 overflow-hidden">
         {carouselImages.length > 0 ? (
           <div className="carousel-container">
             <div className="carousel-track">
-              {/* First set of columns */}
-              {[...Array(2)].map((_, setIndex) => (
-                <div key={setIndex} className="flex gap-3 md:gap-4 px-2 md:px-4 carousel-item">
-                  {/* Column 1 */}
-                  <div className="flex flex-col gap-3 md:gap-4">
-                    {[0, 1, 2].map((i) => {
-                      const imageIndex = setIndex * 9 + i;
-                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
-                      return (
-                        <div
-                          key={`col1-${setIndex}-${i}`}
-                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
-                        >
-                          <img 
-                            src={imageUrl} 
-                            alt="Car showcase" 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {/* Column 2 */}
-                  <div className="flex flex-col gap-3 md:gap-4 mt-8 md:mt-12">
-                    {[0, 1, 2].map((i) => {
-                      const imageIndex = setIndex * 9 + 3 + i;
-                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
-                      return (
-                        <div
-                          key={`col2-${setIndex}-${i}`}
-                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
-                        >
-                          <img 
-                            src={imageUrl} 
-                            alt="Car showcase" 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {/* Column 3 */}
-                  <div className="flex flex-col gap-3 md:gap-4">
-                    {[0, 1, 2].map((i) => {
-                      const imageIndex = setIndex * 9 + 6 + i;
-                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
-                      return (
-                        <div
-                          key={`col3-${setIndex}-${i}`}
-                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
-                        >
-                          <img 
-                            src={imageUrl} 
-                            alt="Car showcase" 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
+              {carouselImages.map((imageUrl, index) => (
+                <div key={index} className="carousel-item">
+                  <img 
+                    src={imageUrl} 
+                    alt="Car showcase" 
+                    className="h-48 md:h-64 w-auto rounded-lg object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
                 </div>
               ))}
-              {/* Duplicate set for seamless loop */}
-              {[...Array(2)].map((_, setIndex) => (
-                <div key={`dup-${setIndex}`} className="flex gap-3 md:gap-4 px-2 md:px-4 carousel-item">
-                  {/* Column 1 */}
-                  <div className="flex flex-col gap-3 md:gap-4">
-                    {[0, 1, 2].map((i) => {
-                      const imageIndex = (setIndex + 2) * 9 + i;
-                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
-                      return (
-                        <div
-                          key={`dup-col1-${setIndex}-${i}`}
-                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
-                        >
-                          <img 
-                            src={imageUrl} 
-                            alt="Car showcase" 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {/* Column 2 */}
-                  <div className="flex flex-col gap-3 md:gap-4 mt-8 md:mt-12">
-                    {[0, 1, 2].map((i) => {
-                      const imageIndex = (setIndex + 2) * 9 + 3 + i;
-                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
-                      return (
-                        <div
-                          key={`dup-col2-${setIndex}-${i}`}
-                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
-                        >
-                          <img 
-                            src={imageUrl} 
-                            alt="Car showcase" 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {/* Column 3 */}
-                  <div className="flex flex-col gap-3 md:gap-4">
-                    {[0, 1, 2].map((i) => {
-                      const imageIndex = (setIndex + 2) * 9 + 6 + i;
-                      const imageUrl = carouselImages[imageIndex % carouselImages.length];
-                      return (
-                        <div
-                          key={`dup-col3-${setIndex}-${i}`}
-                          className="w-48 md:w-64 h-48 md:h-64 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 flex items-center justify-center shadow-lg"
-                        >
-                          <img 
-                            src={imageUrl} 
-                            alt="Car showcase" 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = '<div class="text-gray-600 text-sm">Image unavailable</div>';
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
+              {/* Duplicate for seamless loop */}
+              {carouselImages.map((imageUrl, index) => (
+                <div key={`dup-${index}`} className="carousel-item">
+                  <img 
+                    src={imageUrl} 
+                    alt="Car showcase" 
+                    className="h-48 md:h-64 w-auto rounded-lg object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
                 </div>
               ))}
             </div>
@@ -523,13 +400,18 @@ const Home = () => {
         .carousel-container {
           width: 100%;
           overflow: hidden;
-          mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-          -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
         }
         .carousel-track {
           display: flex;
-          animation: scroll-left 30s linear infinite;
+          gap: 1rem;
+          animation: scroll-left 40s linear infinite;
           will-change: transform;
+        }
+        @media (max-width: 768px) {
+          .carousel-track {
+            animation: scroll-left 25s linear infinite;
+            gap: 0.75rem;
+          }
         }
         @keyframes scroll-left {
           0% {
