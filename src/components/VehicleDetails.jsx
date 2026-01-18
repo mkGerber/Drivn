@@ -22,6 +22,7 @@ const VehicleDetails = () => {
     setEditedLogLaborHours(log.labor_hours || '');
     setEditedLogPerformer(log.performed_by || '');
     setEditedLogNotes(log.notes || '');
+    setEditedLogCategory(log.category || '');
     setEditedLogGallons(log.gas_gallons || '');
   }
 
@@ -53,6 +54,7 @@ const VehicleDetails = () => {
 
   const [logTitle, setLogTitle] = useState(null);
   const [logDescription, setLogDescription] = useState("");
+  const [logCategory, setLogCategory] = useState("");
   const [logCost, setLogCost] = useState(null);
   const [logDate, setLogDate] = useState(null);
   const [logMileage, setLogMileage] = useState(null);
@@ -67,6 +69,7 @@ const VehicleDetails = () => {
   const [editingLogId, setEditingLogId] = useState(null);
   const [editedLogTitle, setEditedLogTitle] = useState("");
   const [editedLogDescription, setEditedLogDescription] = useState("");
+  const [editedLogCategory, setEditedLogCategory] = useState("");
   const [editedLogCost, setEditedLogCost] = useState("");
   const [editedLogDate, setEditedLogDate] = useState("");
   const [editedLogMileage, setEditedLogMileage] = useState("");
@@ -96,6 +99,7 @@ const VehicleDetails = () => {
   const [editedColor, setEditedColor] = useState("");
   const [editedLicensePlate, setEditedLicensePlate] = useState("");
   const [editedVin, setEditedVin] = useState("");
+  const [editedOilChangeInterval, setEditedOilChangeInterval] = useState("");
   
   // Toggle between Vehicle Info and Wheels Info
   const [showWheelsInfo, setShowWheelsInfo] = useState(false);
@@ -179,6 +183,7 @@ const VehicleDetails = () => {
       .update({
         title: editedLogTitle || null,
         description: editedLogDescription || null,
+        category: editedLogCategory || null,
         cost: toNumberOrNull(editedLogCost),
         date: editedLogDate || null,
         mileage: toNumberOrNull(editedLogMileage),
@@ -739,6 +744,7 @@ const VehicleDetails = () => {
         user_id: session.user.id,
         title: logTitle,
         description: logDescription,
+      category: logCategory,
         cost: logCost,
         date: logDate,
         mileage: logMileage,
@@ -778,6 +784,7 @@ const VehicleDetails = () => {
       setLogUploading(false);
       setLogTitle("");
       setLogDescription("");
+    setLogCategory("");
       setLogCost("");
       setLogDate("");
       setLogMileage("");
@@ -813,6 +820,7 @@ const VehicleDetails = () => {
       setLogUploading(false);
       setLogTitle("");
       setLogDescription("");
+    setLogCategory("");
       setLogCost("");
       setLogDate("");
       setLogMileage("");
@@ -898,6 +906,7 @@ const VehicleDetails = () => {
     setEditedColor(vehicle.color || '');
     setEditedLicensePlate(vehicle.license_plate || '');
     setEditedVin(vehicle.vin || '');
+    setEditedOilChangeInterval(vehicle.oil_change_interval || '');
     
     // Load visibility preferences from vehicle or default to true
     setShowMileage(vehicle.show_mileage !== false);
@@ -929,6 +938,9 @@ const VehicleDetails = () => {
           color: editedColor || null,
           license_plate: editedLicensePlate || null,
           vin: editedVin || null,
+          oil_change_interval: editedOilChangeInterval
+            ? Number(editedOilChangeInterval)
+            : null,
           show_mileage: showMileage,
           show_engine: showEngine,
           show_transmission: showTransmission,
@@ -1231,6 +1243,26 @@ const VehicleDetails = () => {
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  const oilChangeInterval = Number(vehicle?.oil_change_interval || 0);
+  const hasOilChangeInterval = Number.isFinite(oilChangeInterval) && oilChangeInterval > 0;
+  const lastOilChangeLog = maintenanceLogs.find((log) => {
+    if (log.gas) return false;
+    return (log.category || '').toLowerCase() === 'oil change';
+  });
+  const lastOilChangeMileage = lastOilChangeLog?.mileage
+    ? Number(lastOilChangeLog.mileage)
+    : null;
+  const currentMileage = Number(vehicle?.current_mileage ?? 0);
+  const hasCurrentMileage = Number.isFinite(currentMileage) && currentMileage > 0;
+  const nextOilChangeMileage =
+    hasOilChangeInterval && lastOilChangeMileage !== null
+      ? lastOilChangeMileage + oilChangeInterval
+      : null;
+  const milesUntilOilChange =
+    nextOilChangeMileage !== null && hasCurrentMileage
+      ? nextOilChangeMileage - currentMileage
+      : null;
 
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
@@ -2339,6 +2371,9 @@ const VehicleDetails = () => {
                       {showTrim && vehicle.trim && <InfoRow label="Trim" value={vehicle.trim} />}
                       {showLicensePlate && vehicle.license_plate && <InfoRow label="License Plate" value={vehicle.license_plate} />}
                       {showVin && vehicle.vin && <InfoRow label="VIN" value={vehicle.vin} />}
+                      {vehicle.oil_change_interval && (
+                        <InfoRow label="Oil Change Interval" value={`${Number(vehicle.oil_change_interval).toLocaleString()} mi`} />
+                      )}
                     </>
                   );
                 })()}
@@ -2460,6 +2495,18 @@ const VehicleDetails = () => {
                       className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                       value={editedVin}
                       onChange={(e) => setEditedVin(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Oil Change Interval (mi)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={editedOilChangeInterval}
+                      onChange={(e) => setEditedOilChangeInterval(e.target.value)}
                     />
                   </div>
                 </div>
@@ -2683,6 +2730,31 @@ const VehicleDetails = () => {
           )}
         </div>
 
+        {hasOilChangeInterval && (
+          <div className="mb-6 rounded-xl border border-gray-700/50 bg-gray-800/40 p-4">
+            <div className="text-sm text-gray-400">Oil Change Interval</div>
+            <div className="text-lg font-semibold text-white">
+              Every {oilChangeInterval.toLocaleString()} mi
+            </div>
+            <div className="text-sm text-gray-300 mt-1">
+              {nextOilChangeMileage !== null ? (
+                <>
+                  Next due at {nextOilChangeMileage.toLocaleString()} mi
+                  {milesUntilOilChange !== null && (
+                    <span className="text-gray-400">
+                      {milesUntilOilChange >= 0
+                        ? ` • ${Math.round(milesUntilOilChange).toLocaleString()} mi remaining`
+                        : ` • ${Math.abs(Math.round(milesUntilOilChange)).toLocaleString()} mi overdue`}
+                    </span>
+                  )}
+                </>
+              ) : (
+                'Log an Oil Change to calculate the next due mileage.'
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Add Maintenance Logs */}
         {canEdit && addLogVisible && (
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 shadow-xl mt-6 border border-gray-700/50">
@@ -2719,6 +2791,33 @@ const VehicleDetails = () => {
                             focus:outline-none focus:ring-2 focus:ring-orange-500
                             invalid:border-red-500 invalid:ring-red-500 placeholder-gray-500"
                 />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-300">
+                  Category <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={logCategory}
+                  onChange={(e) => setLogCategory(e.target.value)}
+                  className="w-full p-3 bg-gray-900 text-white
+                            border border-gray-700 rounded-lg
+                            focus:outline-none focus:ring-2 focus:ring-orange-500
+                            invalid:border-red-500 invalid:ring-red-500"
+                >
+                  <option value="" disabled>Select a category</option>
+                  <option value="Oil Change">Oil Change</option>
+                  <option value="Brakes">Brakes</option>
+                  <option value="Tires">Tires</option>
+                  <option value="Fluids">Fluids</option>
+                  <option value="Filters">Filters</option>
+                  <option value="Battery">Battery</option>
+                  <option value="Inspection">Inspection</option>
+                  <option value="Repair">Repair</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
 
               {/* Description */}
@@ -3120,18 +3219,41 @@ const VehicleDetails = () => {
 
                       {/* Edit Description - Only show if not gas log */}
                       {!log.gas && (
-                        <div className="mb-4">
-                          <label className="block text-xs font-medium text-gray-400 mb-1">
-                            Description
-                          </label>
-                          <textarea
-                            value={editedLogDescription || ''}
-                            onChange={(e) => setEditedLogDescription(e.target.value)}
-                            className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900 text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-                            rows={3}
-                            placeholder="What was done?"
-                          />
-                        </div>
+                        <>
+                          <div className="mb-4">
+                            <label className="block text-xs font-medium text-gray-400 mb-1">
+                              Category
+                            </label>
+                            <select
+                              value={editedLogCategory || ''}
+                              onChange={(e) => setEditedLogCategory(e.target.value)}
+                              className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="">Select a category</option>
+                              <option value="Oil Change">Oil Change</option>
+                              <option value="Brakes">Brakes</option>
+                              <option value="Tires">Tires</option>
+                              <option value="Fluids">Fluids</option>
+                              <option value="Filters">Filters</option>
+                              <option value="Battery">Battery</option>
+                              <option value="Inspection">Inspection</option>
+                              <option value="Repair">Repair</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+                          <div className="mb-4">
+                            <label className="block text-xs font-medium text-gray-400 mb-1">
+                              Description
+                            </label>
+                            <textarea
+                              value={editedLogDescription || ''}
+                              onChange={(e) => setEditedLogDescription(e.target.value)}
+                              className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900 text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                              rows={3}
+                              placeholder="What was done?"
+                            />
+                          </div>
+                        </>
                       )}
 
                       {/* Edit Metadata */}
@@ -3282,7 +3404,14 @@ const VehicleDetails = () => {
                     <div className={`rounded-xl p-6 shadow-xl border ${log.gas ? 'bg-orange-500/20 border-orange-500/30' : 'bg-gray-800/50 border-gray-700/50'} backdrop-blur-sm hover:scale-[1.02] transition-transform`}>
                     {/* Header */}
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-white">{log.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-white">{log.title}</h3>
+                        {!log.gas && log.category && (
+                          <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-500/20 text-blue-200 border border-blue-500/40">
+                            {log.category}
+                          </span>
+                        )}
+                      </div>
                       <div>
                         {canEdit && (
                           <div className="flex items-center gap-1">
