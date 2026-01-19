@@ -15,6 +15,9 @@ import VehicleCommunityScreen from '../screens/VehicleCommunityScreen';
 import DiscussionDetailScreen from '../screens/DiscussionDetailScreen';
 import LegalScreen from '../screens/LegalScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
+import ChatScreen from '../screens/ChatScreen';
+import ConversationsScreen from '../screens/ConversationsScreen';
+import WeeklyChallengeScreen from '../screens/WeeklyChallengeScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -109,6 +112,29 @@ const AppNavigator = () => {
               headerBackTitle: route.params?.backTitle || 'Back',
               headerBackTitleVisible: true,
             })}
+          />
+          <Stack.Screen
+            name="Chat"
+            component={ChatScreen}
+            options={({ route }) => ({
+              headerShown: true,
+              title: 'Messages',
+              headerStyle: { backgroundColor: '#0b1120' },
+              headerTintColor: '#f8fafc',
+              headerShadowVisible: false,
+              headerBackTitle: route.params?.backTitle || 'Back',
+              headerBackTitleVisible: true,
+            })}
+          />
+          <Stack.Screen
+            name="Conversations"
+            component={ConversationsScreen}
+            options={{ headerShown: true, title: 'Messages', headerStyle: { backgroundColor: '#0b1120' }, headerTintColor: '#f8fafc', headerShadowVisible: false }}
+          />
+          <Stack.Screen
+            name="WeeklyChallenge"
+            component={WeeklyChallengeScreen}
+            options={{ headerShown: true, title: 'Weekly Challenge', headerStyle: { backgroundColor: '#0b1120' }, headerTintColor: '#f8fafc', headerShadowVisible: false }}
           />
         </>
       ) : (

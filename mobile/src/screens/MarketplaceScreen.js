@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import supabase from '../supabaseClient';
 import { UserAuth } from '../context/AuthContext';
 
@@ -68,6 +69,7 @@ const MarketplaceScreen = ({ navigation }) => {
 
     fetchVehicles();
   }, [session]);
+
 
   const normalizeTransmission = (value = '') => {
     const v = value.toLowerCase();
@@ -150,9 +152,17 @@ const MarketplaceScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        <Text style={styles.titleAccent}>Marketplace</Text>
-      </Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>
+          <Text style={styles.titleAccent}>Marketplace</Text>
+        </Text>
+        <TouchableOpacity
+          style={styles.messageIconButton}
+          onPress={() => navigation.navigate('Conversations')}
+        >
+          <Ionicons name="chatbubbles-outline" size={18} color="#86efac" />
+        </TouchableOpacity>
+      </View>
       <View style={styles.filterCard}>
         <View style={styles.filterRow}>
           <TextInput
@@ -263,6 +273,22 @@ const styles = StyleSheet.create({
   titleAccent: {
     color: '#22c55e',
     fontWeight: '800',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  messageIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.4)',
   },
   filterCard: {
     backgroundColor: '#0f172a',

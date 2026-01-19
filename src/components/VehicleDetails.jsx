@@ -686,6 +686,41 @@ const VehicleDetails = () => {
     getImages();
   };
 
+  const deleteImage = async (image) => {
+    if (!image?.id) return;
+    const confirmed = window.confirm('Delete this photo?');
+    if (!confirmed) return;
+
+    try {
+      const imageUrl = image.image_url || '';
+      const match = imageUrl.match(/\/storage\/v1\/object\/public\/vehicle-photos\/(.+)$/);
+      const storagePath = match?.[1] || null;
+
+      if (storagePath) {
+        const { error: removeError } = await supabase.storage
+          .from('vehicle-photos')
+          .remove([storagePath]);
+        if (removeError) {
+          console.error('Error removing storage file:', removeError);
+        }
+      }
+
+      const { error: dbError } = await supabase
+        .from('car_images')
+        .delete()
+        .eq('id', image.id);
+
+      if (dbError) {
+        console.error('Error deleting image record:', dbError);
+      } else {
+        getImages();
+        setActiveIndex((prev) => (prev > 0 ? prev - 1 : 0));
+      }
+    } catch (err) {
+      console.error('Error deleting photo:', err);
+    }
+  };
+
   /* ------------------ MAKE COVER ------------------ */
 
   const makeCoverImage = async (imageId) => {
@@ -1462,6 +1497,18 @@ const VehicleDetails = () => {
                 </div>
               )}
 
+              {!canEdit && vehicle.for_sale && (
+                <div className="flex gap-3 self-start">
+                  <button
+                    onClick={() => navigate(`/chat/${vehicle.id}`)}
+                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:opacity-90 transition font-semibold shadow-lg shadow-green-500/50 flex items-center gap-2"
+                  >
+                    <ChatBubbleLeftIcon className="w-5 h-5" />
+                    Message Seller
+                  </button>
+                </div>
+              )}
+
               {!vehicleSaved && !canEdit && (
                 <BookmarkIcon 
                 className="w-8 h-8 absolute top-5 right-5 hover:cursor-pointer text-gray-400 hover:text-blue-500 hover:scale-110 active:scale-95 transition-all duration-200" 
@@ -1668,21 +1715,27 @@ const VehicleDetails = () => {
                     {activeIndex + 1} / {imageUrls.length}
                   </span>
                   {canEdit && (
-                    <div>
-                    {!imageUrls[activeIndex].is_cover ? (
+                    <div className="flex items-center gap-2">
+                      {!imageUrls[activeIndex].is_cover ? (
+                        <button
+                          onClick={() =>
+                            makeCoverImage(imageUrls[activeIndex].id)
+                          }
+                          className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm px-4 py-2 rounded-lg hover:opacity-90 transition font-semibold"
+                        >
+                          Make Cover
+                        </button>
+                      ) : (
+                        <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm px-4 py-2 rounded-lg font-semibold">
+                          Cover Image
+                        </span>
+                      )}
                       <button
-                        onClick={() =>
-                          makeCoverImage(imageUrls[activeIndex].id)
-                        }
-                        className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm px-4 py-2 rounded-lg hover:opacity-90 transition font-semibold"
+                        onClick={() => deleteImage(imageUrls[activeIndex])}
+                        className="bg-red-500/80 hover:bg-red-500 text-white text-sm px-3 py-2 rounded-lg transition font-semibold"
                       >
-                        Make Cover
+                        Delete
                       </button>
-                    ) : (
-                      <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm px-4 py-2 rounded-lg font-semibold">
-                        Cover Image
-                      </span>
-                    )}
                     </div>
                   )}
                 </div>

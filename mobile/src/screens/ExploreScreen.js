@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import supabase from '../supabaseClient';
 import { UserAuth } from '../context/AuthContext';
 import VehicleCard from '../components/VehicleCard';
@@ -114,9 +115,17 @@ const ExploreScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        Explore <Text style={styles.titleAccent}>Builds</Text>
-      </Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>
+          Explore <Text style={styles.titleAccent}>Builds</Text>
+        </Text>
+        <TouchableOpacity
+          style={styles.challengeIconButton}
+          onPress={() => navigation.navigate('WeeklyChallenge')}
+        >
+          <Ionicons name="trophy-outline" size={18} color="#38bdf8" />
+        </TouchableOpacity>
+      </View>
       <View style={styles.filterCard}>
         <View style={styles.filterRow}>
           <TextInput
@@ -239,11 +248,26 @@ const styles = StyleSheet.create({
     color: '#f8fafc',
     fontSize: 20,
     fontWeight: '700',
-    marginBottom: 12,
   },
   titleAccent: {
     color: '#38bdf8',
     fontWeight: '800',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  challengeIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.45)',
   },
   filterCard: {
     backgroundColor: '#0f172a',

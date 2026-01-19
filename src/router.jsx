@@ -11,6 +11,9 @@ import VehicleDetails from "./components/VehicleDetails";
 import DiscussionDetail from "./components/DiscussionDetail";
 import Marketplace from "./components/Marketplace";
 import UserProfile from "./components/UserProfile";
+import Chat from "./components/Chat";
+import Messages from "./components/Messages";
+import WeeklyChallenge from "./components/WeeklyChallenge";
 
 export const router = createBrowserRouter([
     {path: "/", element: <App/>},
@@ -24,5 +27,8 @@ export const router = createBrowserRouter([
     {path: "/vehicle/:id", element:<VehicleDetails/>},
     {path: "/discussion/:id", element:<DiscussionDetail/>},
     {path: "/marketplace", element: <Marketplace/>},
-    {path: "/user/:userId", element: <UserProfile/>}
+    {path: "/user/:userId", element: <UserProfile/>},
+    {path: "/chat/:id", element: <Chat/>},
+    {path: "/messages", element: <Messages/>},
+    {path: "/weekly-challenge", element: <WeeklyChallenge/>}
 ]);

@@ -4,7 +4,7 @@ import Navbar from './Navbar';
 import { Link } from 'react-router-dom';
 import { UserAuth } from '../context/AuthContext';
 import notFound from '../assets/notfound.jpg';
-import { MagnifyingGlassIcon, FunnelIcon, ArrowRightIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, FunnelIcon, ArrowRightIcon, CurrencyDollarIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 
 const Marketplace = () => {
   const { session } = UserAuth();
@@ -90,6 +90,7 @@ const Marketplace = () => {
   useEffect(() => {
     fetchVehicles();
   }, [session]);
+
 
   /* ================================
      Filters + Sort
@@ -205,6 +206,13 @@ const Marketplace = () => {
               <h1 className="text-4xl md:text-6xl font-extrabold text-white">
                 <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">Marketplace</span>
               </h1>
+              <Link
+                to="/messages"
+                className="ml-auto inline-flex items-center justify-center w-11 h-11 rounded-full border border-green-500/40 bg-green-500/10 hover:bg-green-500/20 transition"
+                aria-label="Messages"
+              >
+                <ChatBubbleLeftRightIcon className="w-6 h-6 text-green-300" />
+              </Link>
             </div>
             <p className="text-xl text-gray-400 mb-8">
               Find your next project or dream car

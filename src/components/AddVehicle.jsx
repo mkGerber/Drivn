@@ -1,16 +1,20 @@
-import React, {useState, useEffect} from 'react'
+import React, {useState, useEffect, useMemo} from 'react'
 import Navbar from './Navbar'
 import supabase from "../supabaseClient"
 import { v4 as uuidv4 } from 'uuid';
 import { PlusIcon, ArrowRightIcon, InformationCircleIcon, Cog6ToothIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { UserAuth } from '../context/AuthContext';
+import vehicleCatalog from '../data/vehicleCatalog';
 
 const AddVehicle = () => {
   const { session } = UserAuth();
   const navigate = useNavigate();
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
+  const [type, setType] = useState("");
+  const [makeSearch, setMakeSearch] = useState("");
+  const [modelSearch, setModelSearch] = useState("");
   const [year, setYear] = useState("");
   const [color, setColor] = useState("");
   const [licensePlate, setLicensePlate] = useState("");
@@ -31,6 +35,41 @@ const AddVehicle = () => {
       navigate('/signin');
     }
   }, [session, navigate]);
+
+  const makeOptions = useMemo(
+    () => vehicleCatalog.map((item) => item.make).sort(),
+    []
+  );
+
+  const selectedMake = useMemo(
+    () => vehicleCatalog.find((item) => item.make === make) || null,
+    [make]
+  );
+
+  const modelOptions = useMemo(() => {
+    if (!selectedMake) return [];
+    return selectedMake.models.slice().sort();
+  }, [selectedMake]);
+
+  useEffect(() => {
+    if (!make) {
+      setModel("");
+      setType("");
+      return;
+    }
+    setType(selectedMake?.type || "");
+    if (model && !modelOptions.includes(model)) {
+      setModel("");
+    }
+  }, [make, model, modelOptions, selectedMake]);
+
+  const filteredMakes = makeOptions.filter((item) =>
+    item.toLowerCase().includes(makeSearch.trim().toLowerCase())
+  );
+
+  const filteredModels = modelOptions.filter((item) =>
+    item.toLowerCase().includes(modelSearch.trim().toLowerCase())
+  );
 
   const handleAddVehicle = async (e) => {
     setUploading(true);
@@ -55,7 +94,8 @@ const AddVehicle = () => {
       current_mileage: mileage,
       transmission: transmission,
       engine: engine,
-      public: true
+      public: true,
+      type: type || null
     };
     const { data, error } = await supabase.from("cars").insert([newVehicleData]).single();
 
@@ -123,12 +163,28 @@ const AddVehicle = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g., Toyota"
-                    required
-                    className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
-                    value={make}
-                    onChange={(e) => setMake(e.target.value)}
+                    placeholder="Search make"
+                    className="w-full p-3 mb-2 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
+                    value={makeSearch}
+                    onChange={(e) => setMakeSearch(e.target.value)}
                   />
+                  <select
+                    required
+                    className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    value={make}
+                    onChange={(e) => {
+                      setMake(e.target.value);
+                      setModel("");
+                      setModelSearch("");
+                    }}
+                  >
+                    <option value="">
+                      Select make
+                    </option>
+                    {filteredMakes.map((item) => (
+                      <option key={item} value={item}>{item}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -136,11 +192,36 @@ const AddVehicle = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g., Camry"
+                    placeholder="Search model"
+                    className="w-full p-3 mb-2 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
+                    value={modelSearch}
+                    onChange={(e) => setModelSearch(e.target.value)}
+                    disabled={!make}
+                  />
+                  <select
                     required
-                    className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
+                    className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
+                    disabled={!make || filteredModels.length === 0}
+                  >
+                    <option value="">
+                      {make ? 'Select model' : 'Pick a make first'}
+                    </option>
+                    {filteredModels.map((item) => (
+                      <option key={item} value={item}>{item}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Type
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    className="w-full p-3 bg-gray-900 text-gray-400 border border-gray-700 rounded-lg focus:outline-none"
+                    value={type || 'Auto-assigned'}
                   />
                 </div>
                 <div>

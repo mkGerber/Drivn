@@ -38,6 +38,7 @@ const LOG_CATEGORIES = [
 const VehicleDetailsScreen = ({ route, navigation }) => {
   const { session } = UserAuth();
   const { carId } = route.params || {};
+  const isMarketplace = route?.params?.backTitle === 'Marketplace';
   const [vehicle, setVehicle] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -633,6 +634,48 @@ const VehicleDetailsScreen = ({ route, navigation }) => {
         ) : null}
       </View>
 
+      {isMarketplace && (
+        <View style={styles.marketCard}>
+          <View style={styles.marketPriceRow}>
+            <Text style={styles.marketLabel}>Asking Price</Text>
+            <Text style={styles.marketPrice}>
+              ${Number(vehicle.asking_price || 0).toLocaleString()}
+            </Text>
+          </View>
+          <View style={styles.marketActionRow}>
+            <TouchableOpacity
+              style={[
+                styles.marketButton,
+                styles.marketButtonPrimary,
+                canEdit && styles.marketButtonDisabled,
+              ]}
+              onPress={() =>
+                navigation.navigate('Chat', {
+                  vehicleId: carId,
+                  sellerId: vehicle.user_id,
+                  vehicleName: `${vehicle.make} ${vehicle.model}`,
+                  vehiclePrice: vehicle.asking_price,
+                  backTitle: 'Vehicle',
+                })
+              }
+              disabled={canEdit}
+            >
+              <Ionicons name="chatbubbles-outline" size={16} color="#0b1120" />
+              <Text style={styles.marketButtonTextDark}>
+                {canEdit ? 'Your Listing' : 'Message Seller'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.marketButton, styles.marketButtonGhost]} disabled>
+              <Ionicons name="bookmark-outline" size={16} color="#86efac" />
+              <Text style={styles.marketButtonTextGhost}>Save</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.marketHint}>
+            {canEdit ? 'Buyers can message you from this listing' : 'Realtime chat enabled'}
+          </Text>
+        </View>
+      )}
+
       {ownerProfile && (
         <View style={styles.ownerCard}>
           <TouchableOpacity
@@ -745,7 +788,7 @@ const VehicleDetailsScreen = ({ route, navigation }) => {
 
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
-          <Text style={styles.cardTitle}>Vehicle Overview</Text>
+          <Text style={styles.cardTitle}>{isMarketplace ? 'Listing Details' : 'Vehicle Overview'}</Text>
           {canEdit && !isEditingVehicle && (
             <TouchableOpacity style={styles.addToggleButton} onPress={handleStartEditVehicle}>
               <Text style={styles.addToggleButtonText}>Edit</Text>
@@ -1386,6 +1429,76 @@ const styles = StyleSheet.create({
     color: '#e2e8f0',
     fontSize: 12,
     fontWeight: '600',
+  },
+  marketCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.35)',
+    shadowColor: '#16a34a',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  marketPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  marketLabel: {
+    color: '#94a3b8',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  marketPrice: {
+    color: '#22c55e',
+    fontSize: 26,
+    fontWeight: '800',
+  },
+  marketActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+    marginBottom: 8,
+  },
+  marketButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  marketButtonPrimary: {
+    backgroundColor: '#22c55e',
+    borderColor: 'rgba(34, 197, 94, 0.7)',
+  },
+  marketButtonDisabled: {
+    opacity: 0.6,
+  },
+  marketButtonGhost: {
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderColor: 'rgba(34, 197, 94, 0.35)',
+  },
+  marketButtonTextDark: {
+    color: '#0b1120',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  marketButtonTextGhost: {
+    color: '#86efac',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  marketHint: {
+    color: '#86efac',
+    fontSize: 11,
   },
   ownerCard: {
     backgroundColor: '#0f172a',
