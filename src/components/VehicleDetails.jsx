@@ -662,6 +662,7 @@ const VehicleDetails = () => {
   const uploadImages = async (e) => {
     const selectedFiles = Array.from(e.target.files);
     setUploading(true);
+    let coverAssigned = imageUrls.some((img) => img.is_cover);
 
     for (const file of selectedFiles) {
       const resizedFile = await resizeFile(file);
@@ -676,9 +677,13 @@ const VehicleDetails = () => {
           .from('vehicle-photos')
           .getPublicUrl(data.path).data.publicUrl;
 
+        const shouldBeCover = !coverAssigned;
         await supabase
           .from('car_images')
-          .insert({ car_id: id, image_url: publicUrl });
+          .insert({ car_id: id, image_url: publicUrl, is_cover: shouldBeCover });
+        if (shouldBeCover) {
+          coverAssigned = true;
+        }
       }
     }
 

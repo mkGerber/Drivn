@@ -1,9 +1,9 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const VehicleCard = ({ vehicle, onPress, coverUrl }) => {
+const VehicleCard = ({ vehicle, onPress, coverUrl, onDelete, deleting }) => {
   return (
-    <TouchableOpacity onPress={onPress} style={styles.card}>
+    <TouchableOpacity onPress={onPress} style={styles.card} activeOpacity={0.9}>
       {coverUrl ? (
         <Image source={{ uri: coverUrl }} style={styles.image} resizeMode="cover" />
       ) : (
@@ -23,6 +23,15 @@ const VehicleCard = ({ vehicle, onPress, coverUrl }) => {
           {vehicle.current_mileage ? `${vehicle.current_mileage.toLocaleString()} mi` : '—'}
         </Text>
       </View>
+      {onDelete ? (
+        <TouchableOpacity
+          style={[styles.deleteButton, deleting && styles.deleteButtonDisabled]}
+          onPress={onDelete}
+          disabled={deleting}
+        >
+          <Text style={styles.deleteButtonText}>{deleting ? 'Deleting...' : 'Delete'}</Text>
+        </TouchableOpacity>
+      ) : null}
     </TouchableOpacity>
   );
 };
@@ -81,6 +90,24 @@ const styles = StyleSheet.create({
   metaValue: {
     color: '#e2e8f0',
     fontSize: 13,
+  },
+  deleteButton: {
+    marginTop: 12,
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.6)',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  deleteButtonDisabled: {
+    opacity: 0.6,
+  },
+  deleteButtonText: {
+    color: '#fecaca',
+    fontWeight: '700',
+    fontSize: 12,
   },
 });
 

@@ -6,6 +6,7 @@ import { UserAuth } from '../context/AuthContext';
 
 const AddVehicleScreen = ({ navigation }) => {
   const { session } = UserAuth();
+  const ADD_CAR_XP = 100;
   const [loading, setLoading] = useState(false);
   const [customMake, setCustomMake] = useState('');
   const [customModel, setCustomModel] = useState('');
@@ -233,6 +234,30 @@ const AddVehicleScreen = ({ navigation }) => {
     );
   };
 
+  const awardCarXp = async () => {
+    if (!session?.user?.id) return;
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('xp_score')
+      .eq('id', session.user.id)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching XP:', profileError);
+      return;
+    }
+
+    const nextXp = (Number(profileData?.xp_score) || 0) + ADD_CAR_XP;
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ xp_score: nextXp })
+      .eq('id', session.user.id);
+
+    if (updateError) {
+      console.error('Error updating XP:', updateError);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!session?.user?.id) return;
     const resolvedMake = form.make === 'Other' ? customMake.trim() : form.make;
@@ -263,6 +288,7 @@ const AddVehicleScreen = ({ navigation }) => {
     if (error) {
       console.error('Error adding vehicle:', error);
     } else {
+      await awardCarXp();
       navigation.goBack();
     }
     setLoading(false);

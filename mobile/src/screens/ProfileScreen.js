@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { UserAuth } from '../context/AuthContext';
 import supabase from '../supabaseClient';
 import VehicleCard from '../components/VehicleCard';
+import { getLevelFromXp, getLevelStartXp, getNextLevelXp } from '../utils/xp';
 
 const ProfileScreen = ({ navigation }) => {
   const { session, signOut } = UserAuth();
@@ -32,6 +33,7 @@ const ProfileScreen = ({ navigation }) => {
     username: '',
     avatar_url: '',
     bio: '',
+    xp_score: 0,
   });
 
   const [savedVehicles, setSavedVehicles] = useState([]);
@@ -66,6 +68,7 @@ const ProfileScreen = ({ navigation }) => {
           username: data.username || '',
           avatar_url: data.avatar_url || '',
           bio: data.bio || '',
+          xp_score: Number(data.xp_score) || 0,
         });
       }
       setLoading(false);
@@ -358,6 +361,16 @@ const ProfileScreen = ({ navigation }) => {
     );
   }
 
+  const xpScore = Number(profile.xp_score) || 0;
+  const level = getLevelFromXp(xpScore);
+  const levelStartXp = getLevelStartXp(level);
+  const nextLevelXp = getNextLevelXp(level);
+  const xpToNext = Math.max(0, nextLevelXp - xpScore);
+  const levelProgress = Math.min(
+    1,
+    (xpScore - levelStartXp) / Math.max(1, nextLevelXp - levelStartXp)
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -391,6 +404,16 @@ const ProfileScreen = ({ navigation }) => {
           ) : (
             <Text style={styles.bioEmpty}>Add a short bio to introduce yourself.</Text>
           )}
+          <View style={styles.levelWrap}>
+            <View style={styles.levelRow}>
+              <Text style={styles.levelText}>Level {level}</Text>
+              <Text style={styles.levelSubText}>{xpScore.toLocaleString()} XP</Text>
+              <Text style={styles.levelSubText}>{xpToNext.toLocaleString()} to next</Text>
+            </View>
+            <View style={styles.levelBar}>
+              <View style={[styles.levelFill, { width: `${Math.round(levelProgress * 100)}%` }]} />
+            </View>
+          </View>
         </View>
         <TouchableOpacity style={styles.editButton} onPress={() => setIsEditing(true)}>
           <Ionicons name="create-outline" size={16} color="#f8fafc" />
@@ -440,6 +463,10 @@ const ProfileScreen = ({ navigation }) => {
             {followingLoading ? '—' : following.length}
           </Text>
         </TouchableOpacity>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Level</Text>
+          <Text style={styles.statValue}>{level}</Text>
+        </View>
       </View>
 
       <View style={styles.card}>
@@ -754,6 +781,35 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginTop: 6,
+  },
+  levelWrap: {
+    marginTop: 10,
+    width: '100%',
+  },
+  levelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  levelText: {
+    color: '#fdba74',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  levelSubText: {
+    color: '#94a3b8',
+    fontSize: 10,
+  },
+  levelBar: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(148, 163, 184, 0.25)',
+    overflow: 'hidden',
+  },
+  levelFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#f97316',
   },
   signOutButton: {
     marginTop: 8,

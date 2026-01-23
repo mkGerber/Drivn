@@ -5,16 +5,19 @@ import { v4 as uuidv4 } from 'uuid';
 import { PlusIcon, ArrowRightIcon, InformationCircleIcon, Cog6ToothIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { UserAuth } from '../context/AuthContext';
-import vehicleCatalog from '../data/vehicleCatalog';
+import vehicleModels from '../../mobile/src/data/vehicle models.json';
 
 const AddVehicle = () => {
   const { session } = UserAuth();
   const navigate = useNavigate();
+  const ADD_CAR_XP = 100;
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
   const [type, setType] = useState("");
-  const [makeSearch, setMakeSearch] = useState("");
-  const [modelSearch, setModelSearch] = useState("");
+  const [makeQuery, setMakeQuery] = useState("");
+  const [modelQuery, setModelQuery] = useState("");
+  const [showMakeOptions, setShowMakeOptions] = useState(false);
+  const [showModelOptions, setShowModelOptions] = useState(false);
   const [year, setYear] = useState("");
   const [color, setColor] = useState("");
   const [licensePlate, setLicensePlate] = useState("");
@@ -36,14 +39,37 @@ const AddVehicle = () => {
     }
   }, [session, navigate]);
 
+  const catalog = useMemo(() => {
+    const list = (vehicleModels || [])
+      .map((entry) => {
+        const makeName = String(entry?.Make || entry?.make_name || '').trim();
+        if (!makeName) return null;
+        const rawModels = (entry?.Models || entry?.models || [])
+          .map((model) => String(model?.model_name || model || '').trim())
+          .filter(Boolean);
+        const modelsByName = new Map();
+        rawModels.forEach((name) => {
+          const key = name.toLowerCase();
+          if (!modelsByName.has(key)) {
+            modelsByName.set(key, name);
+          }
+        });
+        const models = Array.from(modelsByName.values()).sort((a, b) => a.localeCompare(b));
+        return { make: makeName, models };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.make.localeCompare(b.make));
+    return list;
+  }, []);
+
   const makeOptions = useMemo(
-    () => vehicleCatalog.map((item) => item.make).sort(),
-    []
+    () => catalog.map((item) => item.make).sort((a, b) => a.localeCompare(b)),
+    [catalog]
   );
 
   const selectedMake = useMemo(
-    () => vehicleCatalog.find((item) => item.make === make) || null,
-    [make]
+    () => catalog.find((item) => item.make === make) || null,
+    [catalog, make]
   );
 
   const modelOptions = useMemo(() => {
@@ -51,25 +77,80 @@ const AddVehicle = () => {
     return selectedMake.models.slice().sort();
   }, [selectedMake]);
 
+  const matchOption = (value, options) => {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return "";
+    return options.find((option) => option.toLowerCase() === normalized) || "";
+  };
+
+  const getTypeForMake = (value = '') => {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return '';
+    const euro = new Set([
+      'audi', 'bmw', 'mercedes-benz', 'mercedes', 'porsche', 'volkswagen', 'volvo', 'mini',
+      'land rover', 'jaguar', 'alfa romeo', 'fiat', 'peugeot', 'renault', 'skoda', 'seat',
+      'bentley', 'maserati', 'ferrari', 'lamborghini', 'aston martin', 'rolls-royce', 'mclaren',
+    ]);
+    const jdm = new Set([
+      'toyota', 'lexus', 'honda', 'acura', 'nissan', 'infiniti', 'mazda', 'subaru', 'mitsubishi',
+      'suzuki', 'daihatsu', 'isuzu',
+    ]);
+    const domestic = new Set([
+      'ford', 'chevrolet', 'gmc', 'cadillac', 'buick', 'chrysler', 'dodge', 'ram', 'jeep',
+      'lincoln', 'tesla', 'rivian',
+    ]);
+    const korean = new Set(['hyundai', 'kia', 'genesis']);
+    if (euro.has(normalized)) return 'Euro';
+    if (jdm.has(normalized)) return 'JDM';
+    if (domestic.has(normalized)) return 'Domestic';
+    if (korean.has(normalized)) return 'Korean';
+    return 'Other';
+  };
+
   useEffect(() => {
     if (!make) {
       setModel("");
+      setModelQuery("");
       setType("");
       return;
     }
-    setType(selectedMake?.type || "");
+    setType(getTypeForMake(make));
     if (model && !modelOptions.includes(model)) {
       setModel("");
     }
   }, [make, model, modelOptions, selectedMake]);
 
   const filteredMakes = makeOptions.filter((item) =>
-    item.toLowerCase().includes(makeSearch.trim().toLowerCase())
+    item.toLowerCase().includes(makeQuery.trim().toLowerCase())
   );
 
   const filteredModels = modelOptions.filter((item) =>
-    item.toLowerCase().includes(modelSearch.trim().toLowerCase())
+    item.toLowerCase().includes(modelQuery.trim().toLowerCase())
   );
+
+  const awardCarXp = async () => {
+    if (!session?.user?.id) return;
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('xp_score')
+      .eq('id', session.user.id)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching XP:', profileError);
+      return;
+    }
+
+    const nextXp = (Number(profileData?.xp_score) || 0) + ADD_CAR_XP;
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ xp_score: nextXp })
+      .eq('id', session.user.id);
+
+    if (updateError) {
+      console.error('Error updating XP:', updateError);
+    }
+  };
 
   const handleAddVehicle = async (e) => {
     setUploading(true);
@@ -81,11 +162,22 @@ const AddVehicle = () => {
       return;
     }
 
+    const matchedMake = matchOption(makeQuery || make, makeOptions);
+    const matchedModel = matchOption(modelQuery || model, modelOptions);
+    const finalMake = matchedMake || make;
+    const finalModel = matchedModel || model;
+
+    if (!finalMake || !finalModel) {
+      alert('Please select a valid make and model from the list.');
+      setUploading(false);
+      return;
+    }
+
     const newVehicleData = {
       id: uuidv4(),
       user_id: session.user.id,
-      make: make,
-      model: model,
+      make: finalMake,
+      model: finalModel,
       year: year,
       color: color,
       license_plate: licensePlate,
@@ -95,7 +187,7 @@ const AddVehicle = () => {
       transmission: transmission,
       engine: engine,
       public: true,
-      type: type || null
+      type: getTypeForMake(finalMake) || null
     };
     const { data, error } = await supabase.from("cars").insert([newVehicleData]).single();
 
@@ -103,6 +195,7 @@ const AddVehicle = () => {
       console.error("Error adding vehicle:", error);
     } else {
       console.log("Vehicle added successfully:", data);
+      await awardCarXp();
     }
 
     // Redirect to garage page
@@ -161,68 +254,97 @@ const AddVehicle = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Make <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Search make"
-                    className="w-full p-3 mb-2 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
-                    value={makeSearch}
-                    onChange={(e) => setMakeSearch(e.target.value)}
-                  />
-                  <select
-                    required
-                    className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                    value={make}
-                    onChange={(e) => {
-                      setMake(e.target.value);
-                      setModel("");
-                      setModelSearch("");
-                    }}
-                  >
-                    <option value="">
-                      Select make
-                    </option>
-                    {filteredMakes.map((item) => (
-                      <option key={item} value={item}>{item}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search or select make"
+                      required
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
+                      value={makeQuery}
+                      onChange={(e) => {
+                        const nextValue = e.target.value;
+                        setMakeQuery(nextValue);
+                        const matchedMake = matchOption(nextValue, makeOptions);
+                        if (matchedMake && matchedMake !== make) {
+                          setMake(matchedMake);
+                          setModel("");
+                          setModelQuery("");
+                        } else if (!matchedMake && make) {
+                          setMake("");
+                          setModel("");
+                          setModelQuery("");
+                        }
+                      }}
+                      onFocus={() => setShowMakeOptions(true)}
+                      onBlur={() => setTimeout(() => setShowMakeOptions(false), 100)}
+                    />
+                    {showMakeOptions && filteredMakes.length > 0 && (
+                      <div className="absolute z-20 mt-2 w-full max-h-60 overflow-auto rounded-lg border border-gray-700 bg-gray-900 shadow-lg">
+                        {filteredMakes.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            className="w-full text-left px-4 py-2 text-white hover:bg-gray-800"
+                            onMouseDown={() => {
+                              setMake(item);
+                              setMakeQuery(item);
+                              setModel("");
+                              setModelQuery("");
+                              setShowMakeOptions(false);
+                            }}
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Model <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Search model"
-                    className="w-full p-3 mb-2 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
-                    value={modelSearch}
-                    onChange={(e) => setModelSearch(e.target.value)}
-                    disabled={!make}
-                  />
-                  <select
-                    required
-                    className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    disabled={!make || filteredModels.length === 0}
-                  >
-                    <option value="">
-                      {make ? 'Select model' : 'Pick a make first'}
-                    </option>
-                    {filteredModels.map((item) => (
-                      <option key={item} value={item}>{item}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Type
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    className="w-full p-3 bg-gray-900 text-gray-400 border border-gray-700 rounded-lg focus:outline-none"
-                    value={type || 'Auto-assigned'}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder={make ? "Search or select model" : "Pick a make first"}
+                      required
+                      className="w-full p-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={modelQuery}
+                      onChange={(e) => {
+                        const nextValue = e.target.value;
+                        setModelQuery(nextValue);
+                        if (!make) return;
+                        const matchedModel = matchOption(nextValue, modelOptions);
+                        if (matchedModel && matchedModel !== model) {
+                          setModel(matchedModel);
+                        } else if (!matchedModel && model) {
+                          setModel("");
+                        }
+                      }}
+                      onFocus={() => setShowModelOptions(true)}
+                      onBlur={() => setTimeout(() => setShowModelOptions(false), 100)}
+                      disabled={!make || modelOptions.length === 0}
+                    />
+                    {showModelOptions && filteredModels.length > 0 && (
+                      <div className="absolute z-20 mt-2 w-full max-h-60 overflow-auto rounded-lg border border-gray-700 bg-gray-900 shadow-lg">
+                        {filteredModels.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            className="w-full text-left px-4 py-2 text-white hover:bg-gray-800"
+                            onMouseDown={() => {
+                              setModel(item);
+                              setModelQuery(item);
+                              setShowModelOptions(false);
+                            }}
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">

@@ -1,0 +1,16 @@
+Drivn XP Rules (Draft)
+
+This file describes the ways users can earn XP. Values are
+initial defaults and can be tuned later.
+
+Actions and XP
+- Create a post: +10 XP
+- Comment on a post: +3 XP
+- Vote in weekly challenge: +1 XP
+- Add a car to garage: +15 XP
+- Win weekly challenge: +50 XP
+- Daily streak check-in: +5 XP
+
+Notes
+- Caps and cooldowns can be added per action to reduce spam.
+- XP should be server-authoritative (no direct client edits).

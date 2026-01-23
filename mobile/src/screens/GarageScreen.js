@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import supabase from '../supabaseClient';
 import { UserAuth } from '../context/AuthContext';
 import VehicleCard from '../components/VehicleCard';
@@ -9,6 +9,7 @@ const GarageScreen = ({ navigation }) => {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [coverImages, setCoverImages] = useState({});
+  const [deletingId, setDeletingId] = useState(null);
 
   const fetchVehicles = async () => {
     if (!session?.user?.id) return;
@@ -53,6 +54,43 @@ const GarageScreen = ({ navigation }) => {
     fetchVehicles();
   }, [session]);
 
+  const confirmDelete = (vehicle) => {
+    Alert.alert(
+      'Delete vehicle?',
+      `${vehicle.make} ${vehicle.model} will be removed from your garage.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => handleDelete(vehicle.id),
+        },
+      ]
+    );
+  };
+
+  const handleDelete = async (vehicleId) => {
+    if (!session?.user?.id) return;
+    setDeletingId(vehicleId);
+    const { error } = await supabase
+      .from('cars')
+      .delete()
+      .eq('id', vehicleId)
+      .eq('user_id', session.user.id);
+
+    if (error) {
+      console.error('Error deleting vehicle:', error);
+    } else {
+      setVehicles((prev) => prev.filter((car) => car.id !== vehicleId));
+      setCoverImages((prev) => {
+        const next = { ...prev };
+        delete next[vehicleId];
+        return next;
+      });
+    }
+    setDeletingId(null);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
@@ -73,16 +111,20 @@ const GarageScreen = ({ navigation }) => {
           data={vehicles}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <VehicleCard
-              vehicle={item}
-              coverUrl={coverImages[item.id]}
-              onPress={() =>
-                navigation.navigate('VehicleDetails', {
-                  carId: item.id,
-                  backTitle: 'Garage',
-                })
-              }
-            />
+            <View style={styles.cardWrap}>
+              <VehicleCard
+                vehicle={item}
+                coverUrl={coverImages[item.id]}
+                onPress={() =>
+                  navigation.navigate('VehicleDetails', {
+                    carId: item.id,
+                    backTitle: 'Garage',
+                  })
+                }
+                onDelete={() => confirmDelete(item)}
+                deleting={deletingId === item.id}
+              />
+            </View>
           )}
           ListEmptyComponent={
             <Text style={styles.emptyText}>No vehicles yet. Add one to get started.</Text>
@@ -132,6 +174,9 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
     marginTop: 32,
+  },
+  cardWrap: {
+    marginBottom: 12,
   },
 });
 

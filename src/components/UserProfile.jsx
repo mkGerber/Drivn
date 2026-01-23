@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import stockCarImage from '../assets/notfound.jpg';
 import { ArrowRightIcon, HomeIcon } from '@heroicons/react/24/outline';
 import { UserAuth } from '../context/AuthContext';
+import { getLevelFromXp, getLevelStartXp, getNextLevelXp } from '../utils/xp';
 
 const UserProfile = () => {
   const { userId } = useParams();
@@ -59,7 +60,7 @@ const UserProfile = () => {
         // Fetch user profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id, username, avatar_url, bio')
+          .select('id, username, avatar_url, bio, xp_score')
           .eq('id', userId)
           .single();
 
@@ -69,7 +70,7 @@ const UserProfile = () => {
           return;
         }
 
-        setProfile(profileData);
+        setProfile({ ...profileData, xp_score: Number(profileData?.xp_score) || 0 });
 
         // Fetch user's vehicles
         const { data: carsData, error: carsError } = await supabase
@@ -213,6 +214,16 @@ const UserProfile = () => {
     );
   }
 
+  const xpScore = Number(profile.xp_score) || 0;
+  const level = getLevelFromXp(xpScore);
+  const levelStartXp = getLevelStartXp(level);
+  const nextLevelXp = getNextLevelXp(level);
+  const xpToNext = Math.max(0, nextLevelXp - xpScore);
+  const levelProgress = Math.min(
+    1,
+    (xpScore - levelStartXp) / Math.max(1, nextLevelXp - levelStartXp)
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white -mt-0">
       <Navbar />
@@ -257,6 +268,20 @@ const UserProfile = () => {
                     {profile.bio}
                   </p>
                 )}
+
+                <div className="mt-4 w-full max-w-2xl">
+                  <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                    <span className="font-semibold text-orange-300">Level {level}</span>
+                    <span>{xpScore.toLocaleString()} XP</span>
+                    <span>{xpToNext.toLocaleString()} to next</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-700/60 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-orange-500 to-red-500"
+                      style={{ width: `${Math.round(levelProgress * 100)}%` }}
+                    />
+                  </div>
+                </div>
 
                 {/* Stats */}
                 {!loading && userCars.length > 0 && (

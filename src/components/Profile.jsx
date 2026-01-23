@@ -6,6 +6,7 @@ import supabase from '../supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
 import { PencilIcon, CameraIcon, ArrowRightIcon, BookmarkIcon, UserGroupIcon, UserPlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import notFound from '../assets/notfound.jpg';
+import { getLevelFromXp, getLevelStartXp, getNextLevelXp } from '../utils/xp';
 
 const Profile = () => {
   const { session, signOut } = UserAuth();
@@ -17,7 +18,8 @@ const Profile = () => {
   const [profile, setProfile] = useState({
     username: '',
     avatar_url: '',
-    bio: ''
+    bio: '',
+    xp_score: 0,
   });
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -58,7 +60,7 @@ const Profile = () => {
       if (error && error.code !== 'PGRST116') {
         console.error(error);
       } else if (data) {
-        setProfile(data);
+        setProfile({ ...data, xp_score: Number(data.xp_score) || 0 });
       }
 
       setLoading(false);
@@ -376,6 +378,16 @@ const Profile = () => {
 
   if (!session) return null;
 
+  const xpScore = Number(profile.xp_score) || 0;
+  const level = getLevelFromXp(xpScore);
+  const levelStartXp = getLevelStartXp(level);
+  const nextLevelXp = getNextLevelXp(level);
+  const xpToNext = Math.max(0, nextLevelXp - xpScore);
+  const levelProgress = Math.min(
+    1,
+    (xpScore - levelStartXp) / Math.max(1, nextLevelXp - levelStartXp)
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white -mt-0">
       <Navbar />
@@ -470,6 +482,20 @@ const Profile = () => {
               ) : (
                 <p className="text-gray-500 text-sm italic">No bio yet. Add one in your profile settings!</p>
               )}
+
+              <div className="mt-4 max-w-md mx-auto sm:mx-0 w-full">
+                <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                  <span className="font-semibold text-orange-300">Level {level}</span>
+                  <span>{xpScore.toLocaleString()} XP</span>
+                  <span>{xpToNext.toLocaleString()} to next</span>
+                </div>
+                <div className="h-2 rounded-full bg-gray-700/60 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-orange-500 to-red-500"
+                    style={{ width: `${Math.round(levelProgress * 100)}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

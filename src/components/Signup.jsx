@@ -124,6 +124,7 @@ const Signup = () => {
         username: username.trim(),
         bio: bio.trim() || null,
         avatar_url: avatarUrl,
+        xp_score: 0,
       })
 
       if (profileError) {

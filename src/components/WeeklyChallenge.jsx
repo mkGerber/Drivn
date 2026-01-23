@@ -123,25 +123,34 @@ const WeeklyChallenge = () => {
   }, [session]);
 
   const handleVote = async (entryId) => {
-    if (!session?.user?.id || !challenge || challengeUserVote) return;
-    const { error } = await supabase.from('challenge_votes').insert([
-      {
-        challenge_id: challenge.id,
-        entry_id: entryId,
-        voter_id: session.user.id,
-      },
-    ]);
+    if (!session?.user?.id || !challenge) return;
+    if (challengeUserVote === entryId) return;
 
-    if (error) {
-      console.error('Error casting vote:', error);
+    const previousVoteId = challengeUserVote;
+    const votePayload = {
+      challenge_id: challenge.id,
+      entry_id: entryId,
+      voter_id: session.user.id,
+    };
+
+    const { error: voteError } = await supabase
+      .from('challenge_votes')
+      .upsert([votePayload], { onConflict: 'challenge_id,voter_id' });
+
+    if (voteError) {
+      console.error('Error casting vote:', voteError);
       return;
     }
 
     setChallengeUserVote(entryId);
-    setChallengeVotes((prev) => ({
-      ...prev,
-      [entryId]: (prev[entryId] || 0) + 1,
-    }));
+    setChallengeVotes((prev) => {
+      const next = { ...prev };
+      if (previousVoteId) {
+        next[previousVoteId] = Math.max(0, (next[previousVoteId] || 0) - 1);
+      }
+      next[entryId] = (next[entryId] || 0) + 1;
+      return next;
+    });
   };
 
   const loadGarageVehicles = async () => {
@@ -313,7 +322,7 @@ const WeeklyChallenge = () => {
                                     : 'bg-blue-500 text-white hover:bg-blue-400'
                                 }`}
                                 onClick={() => handleVote(entry.id)}
-                                disabled={!!challengeUserVote}
+                                disabled={isVoted}
                               >
                                 {isVoted ? 'Voted' : 'Vote'}
                               </button>

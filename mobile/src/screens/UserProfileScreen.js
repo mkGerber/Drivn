@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import supabase from '../supabaseClient';
 import { UserAuth } from '../context/AuthContext';
 import VehicleCard from '../components/VehicleCard';
+import { getLevelFromXp, getLevelStartXp, getNextLevelXp } from '../utils/xp';
 
 const UserProfileScreen = ({ route, navigation }) => {
   const { session } = UserAuth();
@@ -56,7 +57,7 @@ const UserProfileScreen = ({ route, navigation }) => {
       setLoading(true);
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, bio')
+        .select('id, username, avatar_url, bio, xp_score')
         .eq('id', userId)
         .single();
 
@@ -66,7 +67,7 @@ const UserProfileScreen = ({ route, navigation }) => {
         return;
       }
 
-      setProfile(profileData);
+      setProfile({ ...profileData, xp_score: Number(profileData?.xp_score) || 0 });
 
       const { data: carsData, error: carsError } = await supabase
         .from('cars')
@@ -154,6 +155,16 @@ const UserProfileScreen = ({ route, navigation }) => {
     );
   }
 
+  const xpScore = Number(profile.xp_score) || 0;
+  const level = getLevelFromXp(xpScore);
+  const levelStartXp = getLevelStartXp(level);
+  const nextLevelXp = getNextLevelXp(level);
+  const xpToNext = Math.max(0, nextLevelXp - xpScore);
+  const levelProgress = Math.min(
+    1,
+    (xpScore - levelStartXp) / Math.max(1, nextLevelXp - levelStartXp)
+  );
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.headerCard}>
@@ -168,6 +179,16 @@ const UserProfileScreen = ({ route, navigation }) => {
           <View style={styles.headerInfo}>
             <Text style={styles.handle}>@{profile.username || 'user'}</Text>
             {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+            <View style={styles.levelWrap}>
+              <View style={styles.levelRow}>
+                <Text style={styles.levelText}>Level {level}</Text>
+                <Text style={styles.levelSubText}>{xpScore.toLocaleString()} XP</Text>
+                <Text style={styles.levelSubText}>{xpToNext.toLocaleString()} to next</Text>
+              </View>
+              <View style={styles.levelBar}>
+                <View style={[styles.levelFill, { width: `${Math.round(levelProgress * 100)}%` }]} />
+              </View>
+            </View>
           </View>
         </View>
         {session?.user?.id && session.user.id !== userId && (
@@ -313,6 +334,34 @@ const styles = StyleSheet.create({
     color: '#f8fafc',
     fontWeight: '700',
     marginTop: 4,
+  },
+  levelWrap: {
+    marginTop: 8,
+  },
+  levelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  levelText: {
+    color: '#fdba74',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  levelSubText: {
+    color: '#94a3b8',
+    fontSize: 10,
+  },
+  levelBar: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(148, 163, 184, 0.25)',
+    overflow: 'hidden',
+  },
+  levelFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#f97316',
   },
   card: {
     backgroundColor: '#0f172a',

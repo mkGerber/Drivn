@@ -366,7 +366,7 @@ const VehicleDetailsScreen = ({ route, navigation }) => {
       }
 
       const assets = result.assets || [];
-      const hasCover = images.some((img) => img.is_cover);
+      let coverAssigned = images.some((img) => img.is_cover);
 
       for (let i = 0; i < assets.length; i += 1) {
         const asset = assets[i];
@@ -388,13 +388,17 @@ const VehicleDetailsScreen = ({ route, navigation }) => {
             .from('vehicle-photos')
             .getPublicUrl(path).data.publicUrl;
 
+          const shouldBeCover = !coverAssigned;
           await supabase
             .from('car_images')
             .insert({
               car_id: carId,
               image_url: publicUrl,
-              is_cover: !hasCover && i === 0,
+              is_cover: shouldBeCover,
             });
+          if (shouldBeCover) {
+            coverAssigned = true;
+          }
         } else {
           console.error('Image upload error:', uploadError);
         }
@@ -406,6 +410,27 @@ const VehicleDetailsScreen = ({ route, navigation }) => {
     } finally {
       setUploadingPhotos(false);
     }
+  };
+
+  const handleMakeCover = async (imageId) => {
+    if (!canEdit || !imageId) return;
+    const { error: resetError } = await supabase
+      .from('car_images')
+      .update({ is_cover: false })
+      .eq('car_id', carId);
+    if (resetError) {
+      console.error('Error clearing cover images:', resetError);
+      return;
+    }
+    const { error: coverError } = await supabase
+      .from('car_images')
+      .update({ is_cover: true })
+      .eq('id', imageId);
+    if (coverError) {
+      console.error('Error setting cover image:', coverError);
+      return;
+    }
+    fetchImages();
   };
 
   const handleDeletePhoto = (image) => {
@@ -732,6 +757,19 @@ const VehicleDetailsScreen = ({ route, navigation }) => {
                 style={[styles.galleryImage, img.is_cover && styles.coverImage]}
                 resizeMode="cover"
               />
+              {img.is_cover ? (
+                <View style={styles.coverBadge}>
+                  <Text style={styles.coverBadgeText}>Cover</Text>
+                </View>
+              ) : null}
+              {canEdit && !img.is_cover && (
+                <TouchableOpacity
+                  style={styles.makeCoverButton}
+                  onPress={() => handleMakeCover(img.id)}
+                >
+                  <Text style={styles.makeCoverButtonText}>Make Cover</Text>
+                </TouchableOpacity>
+              )}
               {canEdit && (
                 <TouchableOpacity
                   style={styles.deletePhotoButton}
@@ -1597,6 +1635,40 @@ const styles = StyleSheet.create({
   coverImage: {
     borderColor: '#f97316',
     borderWidth: 2,
+  },
+  coverBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 12,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(249, 115, 22, 0.9)',
+  },
+  coverBadgeText: {
+    color: '#f97316',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  makeCoverButton: {
+    position: 'absolute',
+    bottom: 10,
+    left: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.9)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.95)',
+  },
+  makeCoverButtonText: {
+    color: '#f8fafc',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   galleryPlaceholder: {
     height: 170,
